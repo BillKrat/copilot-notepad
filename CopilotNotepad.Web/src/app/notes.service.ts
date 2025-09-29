@@ -8,7 +8,7 @@ import { AuthService } from './auth.service';
   providedIn: 'root'
 })
 export class NotesService {
-  private apiUrl = 'http://localhost:5000/api/notes'; // This will be the Aspire API URL
+  private apiUrl = 'https://localhost:7001/api/notes'; // Aspire will use HTTPS by default
 
   constructor(
     private http: HttpClient,
