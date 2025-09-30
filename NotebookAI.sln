@@ -1,0 +1,55 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 18
+VisualStudioVersion = 18.0.11018.127
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NotebookAI.Server", "NotebookAI.Server\NotebookAI.Server.csproj", "{0A31FE12-D541-AA9A-C541-87B5D4682FF7}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NotebookAI.AppHost", "NotebookAI.AppHost\NotebookAI.AppHost.csproj", "{B78CF2C2-5A86-4D99-BD6A-53D4B219B2C8}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NotebookAI.ServiceDefaults", "NotebookAI.ServiceDefaults\NotebookAI.ServiceDefaults.csproj", "{62322AE2-223C-848B-B706-D3F817C49BB9}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{8EC462FD-D22E-90A8-E5CE-7E832BA40C5D}"
+	ProjectSection(SolutionItems) = preProject
+		..\LICENSE.txt = ..\LICENSE.txt
+		README.md = README.md
+	EndProjectSection
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "notebookai.client", "notebookai.client\notebookai.client.csproj", "{D3DE2256-BD25-758A-890A-48A8D8412D7B}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NotePadAI.ProjectSetup", "NotePadAI.ProjectSetup\NotePadAI.ProjectSetup.csproj", "{7A59DBF0-A218-42C3-9CA9-7A4AAE60687F}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{0A31FE12-D541-AA9A-C541-87B5D4682FF7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0A31FE12-D541-AA9A-C541-87B5D4682FF7}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0A31FE12-D541-AA9A-C541-87B5D4682FF7}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0A31FE12-D541-AA9A-C541-87B5D4682FF7}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B78CF2C2-5A86-4D99-BD6A-53D4B219B2C8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B78CF2C2-5A86-4D99-BD6A-53D4B219B2C8}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B78CF2C2-5A86-4D99-BD6A-53D4B219B2C8}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B78CF2C2-5A86-4D99-BD6A-53D4B219B2C8}.Release|Any CPU.Build.0 = Release|Any CPU
+		{62322AE2-223C-848B-B706-D3F817C49BB9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{62322AE2-223C-848B-B706-D3F817C49BB9}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{62322AE2-223C-848B-B706-D3F817C49BB9}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{62322AE2-223C-848B-B706-D3F817C49BB9}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D3DE2256-BD25-758A-890A-48A8D8412D7B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D3DE2256-BD25-758A-890A-48A8D8412D7B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D3DE2256-BD25-758A-890A-48A8D8412D7B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D3DE2256-BD25-758A-890A-48A8D8412D7B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7A59DBF0-A218-42C3-9CA9-7A4AAE60687F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7A59DBF0-A218-42C3-9CA9-7A4AAE60687F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7A59DBF0-A218-42C3-9CA9-7A4AAE60687F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7A59DBF0-A218-42C3-9CA9-7A4AAE60687F}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {97B152C4-6E4D-4584-B16B-C1C1D78395D1}
+	EndGlobalSection
+EndGlobal

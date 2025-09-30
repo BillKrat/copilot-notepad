@@ -1,0 +1,18 @@
+/* Weather component specific styles */
+.weather-container {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.weather-loading {
+  text-align: center;
+  padding: 2rem;
+}
+
+.weather-table {
+  margin-top: 1rem;
+}
+
+.temperature-tag {
+  font-weight: bold;
+}
