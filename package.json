@@ -1,0 +1,6 @@
+{
+  "devDependencies": {
+    "@angular-builders/custom-webpack": "^20.0.0",
+    "dotenv": "^17.2.0"
+  }
+}

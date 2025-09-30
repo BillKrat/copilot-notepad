@@ -1,0 +1,66 @@
+<div class="navbar-login">
+  <!-- User is not authenticated -->
+  <div *ngIf="(auth.isAuthenticated$ | async) === false" class="login-actions">
+    <p-button 
+      label="Sign In" 
+      icon="pi pi-sign-in" 
+      severity="secondary"
+      size="small"
+      (onClick)="login()"
+      styleClass="login-btn">
+    </p-button>
+  </div>
+
+  <!-- User is authenticated -->
+  <div *ngIf="auth.isAuthenticated$ | async" class="user-menu">
+    <div class="user-info" *ngIf="auth.user$ | async as user">
+      <p-button 
+        type="button"
+        [text]="true"
+        styleClass="user-button"
+        (onClick)="toggleMenu($event)">
+        <div class="user-display">
+          <span class="user-name">{{ user.name || user.email }}</span>
+          <i class="pi pi-chevron-down"></i>
+        </div>
+      </p-button>
+      
+      <p-overlayPanel #userMenu>
+        <div class="user-menu-content">
+          <div class="user-details">
+            <p class="user-full-name">{{ user.name }}</p>
+            <p class="user-email">{{ user.email }}</p>
+          </div>
+          <p-divider></p-divider>
+          <p-button 
+            label="Sign Out" 
+            icon="pi pi-sign-out" 
+            severity="danger"
+            size="small"
+            [text]="true"
+            (onClick)="logout()"
+            styleClass="logout-btn">
+          </p-button>
+        </div>
+      </p-overlayPanel>
+    </div>
+  </div>
+
+  <!-- Loading state -->
+  <div *ngIf="auth.isLoading$ | async" class="loading-state">
+    <i class="pi pi-spin pi-spinner"></i>
+    <span class="loading-text">Authenticating...</span>
+  </div>
+
+  <!-- Error state -->
+  <div *ngIf="auth.error$ | async as error" class="error-state">
+    <p-button 
+      icon="pi pi-exclamation-triangle" 
+      severity="danger"
+      size="small"
+      [text]="true"
+      [pTooltip]="'Authentication Error: ' + error.message"
+      (onClick)="login()">
+    </p-button>
+  </div>
+</div>

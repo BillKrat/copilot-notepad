@@ -1,0 +1,44 @@
+﻿<!-- Main Application Container -->
+<div class="app-container">
+  <!-- Navigation Bar -->
+  <nav class="app-navbar">
+    <div class="navbar-content">
+      <!-- App Logo/Title -->
+      <div class="navbar-brand">
+        <h1 class="app-title">{{ title }}</h1>
+      </div>
+      
+      <!-- Navigation Menu (could add more menu items here) -->
+      <div class="navbar-menu">
+        <!-- Add navigation items here if needed -->
+      </div>
+      
+      <!-- Login Component in top right -->
+      <div class="navbar-auth">
+        <app-login></app-login>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Main Content -->
+  <main class="app-main">
+    <!-- Content shown only when authenticated -->
+    <div *ngIf="auth.isAuthenticated$ | async">
+      <!-- Weather Component -->
+      <app-weather></app-weather>
+      
+      <!-- PrimeNG Demo Section -->
+      <app-primeng-demo></app-primeng-demo>
+    </div>
+    
+    <!-- Welcome message when not authenticated -->
+    <div *ngIf="(auth.isAuthenticated$ | async) === false" class="welcome-section">
+      <p-card header="Welcome to {{ title }}" class="welcome-card">
+        <p>Please sign in to access the site.</p>
+      </p-card>
+    </div>
+  </main>
+</div>
+
+<!-- Global Toast Messages -->
+<p-toast></p-toast>

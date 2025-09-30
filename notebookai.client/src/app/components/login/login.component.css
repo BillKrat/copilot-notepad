@@ -1,0 +1,239 @@
+/* Navbar Login Styles */
+.navbar-login {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  height: 36px; /* Fixed height instead of min-height */
+  margin: 0; /* Ensure no margins */
+  padding: 0; /* Ensure no padding */
+}
+
+.login-actions {
+  display: flex;
+  align-items: center;
+  height: 36px; /* Fixed height instead of min-height */
+  margin: 0; /* Ensure no margins */
+}
+
+.login-btn {
+  background-color: rgba(255, 255, 255, 0.1) !important;
+  border-color: rgba(255, 255, 255, 0.3) !important;
+  color: white !important;
+}
+
+.login-btn:hover {
+  background-color: rgba(255, 255, 255, 0.2) !important;
+  border-color: rgba(255, 255, 255, 0.5) !important;
+}
+
+/* User Menu Styles */
+.user-menu {
+  display: flex;
+  align-items: center;
+  height: 36px; /* Fixed height instead of min-height */
+  margin: 0; /* Ensure no margins */
+}
+
+.user-button {
+  background: transparent !important;
+  border: none !important;
+  color: white !important;
+  padding: 0.25rem 0.75rem !important;
+  height: 36px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.user-button:hover {
+  background-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+.user-display {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  height: 36px;
+  overflow: hidden;
+}
+
+.user-name {
+  color: white;
+  font-weight: 500;
+  max-width: 150px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.9rem;
+  line-height: 1.2;
+  display: flex;
+  align-items: center;
+  height: 100%;
+}
+
+/* Overlay Panel Styles */
+.user-menu-content {
+  min-width: 200px;
+  padding: 1rem;
+}
+
+.user-details {
+  margin-bottom: 1rem;
+}
+
+.user-full-name {
+  font-weight: 600;
+  margin: 0 0 0.25rem 0;
+  color: var(--text-color);
+}
+
+.user-email {
+  font-size: 0.875rem;
+  color: var(--text-color-secondary);
+  margin: 0;
+}
+
+.logout-btn {
+  width: 100%;
+  justify-content: center;
+}
+
+/* Loading State */
+.loading-state {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: white;
+  height: 36px; /* Fixed height instead of min-height */
+  margin: 0; /* Ensure no margins */
+}
+
+.loading-text {
+  font-size: 0.875rem;
+}
+
+/* Error State */
+.error-state {
+  display: flex;
+  align-items: center;
+  height: 36px; /* Fixed height instead of min-height */
+  margin: 0; /* Ensure no margins */
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .user-name {
+    display: none;
+  }
+  
+  .user-display {
+    gap: 0.25rem;
+  }
+  
+  .loading-text {
+    display: none;
+  }
+}
+
+/* User Section */
+.user-section {
+  padding: 2rem;
+}
+
+.user-info {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  padding: 1rem;
+  background: var(--surface-100);
+  border-radius: 8px;
+}
+
+.user-avatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  overflow: hidden;
+  background: var(--primary-color);
+}
+
+.avatar-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.avatar-placeholder {
+  font-size: 2rem;
+  color: white;
+}
+
+.user-details h3 {
+  margin: 0 0 0.5rem 0;
+  color: var(--text-color);
+}
+
+.user-name {
+  font-weight: 600;
+  color: var(--text-color);
+  margin: 0 0 0.25rem 0;
+}
+
+.user-email {
+  color: var(--text-color-secondary);
+  font-size: 0.9rem;
+  margin: 0;
+}
+
+.user-actions {
+  display: flex;
+  justify-content: center;
+}
+
+.logout-btn {
+  min-width: 150px;
+}
+
+/* Loading Section */
+.loading-section {
+  text-align: center;
+  padding: 3rem 2rem;
+}
+
+.loading-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+}
+
+.loading-icon {
+  font-size: 3rem;
+  color: var(--primary-color);
+}
+
+/* Error Section */
+.error-section {
+  padding: 1rem;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .login-container {
+    padding: 1rem;
+    min-height: 50vh;
+  }
+  
+  .user-info {
+    flex-direction: column;
+    text-align: center;
+  }
+  
+  .login-buttons {
+    max-width: 100%;
+  }
+}

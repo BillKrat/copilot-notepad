@@ -1,0 +1,33 @@
+# User secrets and production configurations
+**/appsettings.Production.json
+**/appsettings.Staging.json
+**/appsettings.Local.json
+
+# .NET User secrets
+**/secrets.json
+
+# Environment-specific files
+**/*.local.json
+**/.env
+**/.env.local
+**/.env.production
+
+# Visual Studio
+**/.vs/
+**/bin/
+**/obj/
+**/*.user
+**/*.suo
+**/*.cache
+**/packages/
+
+# JetBrains
+**/.idea/
+
+# Node modules
+**/node_modules/
+**/dist/
+
+# OS files
+**/.DS_Store
+**/Thumbs.db

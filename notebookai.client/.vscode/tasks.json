@@ -1,0 +1,79 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "type": "npm",
+      "script": "start",
+      "label": "npm: start",
+      "detail": "dev server (development)",
+      "isBackground": true,
+      "problemMatcher": [
+        {
+          "pattern": [
+            {
+              "regexp": "^([^\\s].*)\\((\\d+),(\\d+)\\):\\s+(warning|error)\\s+(TS\\d+)\\s*:\\s*(.*)$",
+              "file": 1,
+              "line": 2,
+              "column": 3,
+              "severity": 4,
+              "code": 5,
+              "message": 6
+            }
+          ],
+          "background": {
+            "activeOnStart": true,
+            "beginsPattern": "◼ Building\\.\\.\\.|⠋ Building\\.\\.\\.|⠙ Building\\.\\.\\.|Building\\.\\.\\.",
+            "endsPattern": "✔ Browser application bundle generation complete\\.|Compiled successfully\\.|Local:.*https://localhost:50012"
+          }
+        }
+      ]
+    },
+    {
+      "type": "npm",
+      "script": "start:prod",
+      "label": "npm: start:prod",
+      "detail": "dev server (production)",
+      "isBackground": true,
+      "problemMatcher": [
+        {
+          "pattern": [
+            {
+              "regexp": "^([^\\s].*)\\((\\d+),(\\d+)\\):\\s+(warning|error)\\s+(TS\\d+)\\s*:\\s*(.*)$",
+              "file": 1,
+              "line": 2,
+              "column": 3,
+              "severity": 4,
+              "code": 5,
+              "message": 6
+            }
+          ],
+          "background": {
+            "activeOnStart": true,
+            "beginsPattern": "◼ Building\\.\\.\\.|⠋ Building\\.\\.\\.|⠙ Building\\.\\.\\.|Building\\.\\.\\.",
+            "endsPattern": "✔ Browser application bundle generation complete\\.|Compiled successfully\\.|Local:.*https://localhost:50013"
+          }
+        }
+      ]
+    },
+    {
+      "type": "npm",
+      "script": "package:webdeploy-bat",
+      "label": "npm: package:webdeploy-bat",
+      "detail": "Create Web Deploy package",
+      "isBackground": false,
+      "group": {
+        "kind": "build",
+        "isDefault": false
+      },
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "shared",
+        "showReuseMessage": true,
+        "clear": false
+      },
+      "problemMatcher": []
+    }
+  ]
+}

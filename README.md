@@ -1,6 +1,15 @@
+
 # Copilot Notepad
 
-A hybrid framework notepad application built with .NET Aspire, ASP.NET Core Web API, and Angular with Auth0 authentication.
+A hybrid framework notepad application built with .NET Aspire, ASP.NET Core Web API, and Angular with Auth0 authentication.  This project was generated as an exercise in AI-assisted development using GitHub Copilot.
+
+[▶ Watch the setup video (demonstrates hybrid capabilities)](https://www.global-webnet.com/files/notepadAi-setup.mp4)
+
+## License
+
+MIT License - see LICENSE file for details.
+=======
+﻿# Notebook AI
 
 ## Overview
 
@@ -189,11 +198,3 @@ copilot-notepad/
 │   └── package.json                 # NPM dependencies
 └── CopilotNotepad.sln               # Solution file
 ```
-
-## Contributing
-
-This project was generated as an exercise in AI-assisted development using GitHub Copilot.
-
-## License
-
-MIT License - see LICENSE file for details.

@@ -1,0 +1,70 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "msedge",
+      "request": "launch",
+      "name": "dev: stand-alone (Edge:4200)",
+      "url": "http://localhost:4200",
+      "webRoot": "${workspaceFolder}",
+      "preLaunchTask": "npm: start"
+    },
+    {
+      "type": "chrome",
+      "request": "launch",
+      "name": "dev: stand-alone (Chrome:4200)",
+      "url": "http://localhost:4200",
+      "webRoot": "${workspaceFolder}",
+      "preLaunchTask": "npm: start"
+    },
+    {
+      "type": "msedge",
+      "request": "launch",
+      "name": "dev: aspire (Edge:50012)",
+      "url": "https://localhost:50012",
+      "webRoot": "${workspaceFolder}",
+      "runtimeExecutable": "msedge",
+      "preLaunchTask": "npm: start"
+    },
+    {
+      "type": "chrome",
+      "request": "launch",
+      "name": "dev: aspire (Chrome:50012)",
+      "url": "https://localhost:50012",
+      "webRoot": "${workspaceFolder}",
+      "preLaunchTask": "npm: start"
+    },
+    {
+      "type": "msedge",
+      "request": "launch",
+      "name": "prod: aspire (Edge:50013)",
+      "url": "https://localhost:50013",
+      "webRoot": "${workspaceFolder}",
+      "runtimeExecutable": "msedge",
+      "preLaunchTask": "npm: start:prod"
+    },
+    {
+      "type": "chrome",
+      "request": "launch",
+      "name": "prod: aspire (Chrome:50013)",
+      "url": "https://localhost:50013",
+      "webRoot": "${workspaceFolder}",
+      "preLaunchTask": "npm: start:prod"
+    },
+    {
+      "name": "Create Web Deploy Package",
+      "type": "node",
+      "request": "launch",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "package:webdeploy-bat"],
+      "console": "integratedTerminal",
+      "cwd": "${workspaceFolder}",
+      "skipFiles": ["<node_internals>/**"],
+      "presentation": {
+        "hidden": false,
+        "group": "build",
+        "order": 1
+      }
+    }
+  ]
+}
