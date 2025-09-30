@@ -8,8 +8,6 @@ A hybrid framework notepad application built with .NET Aspire, ASP.NET Core Web 
 ## License
 
 MIT License - see LICENSE file for details.
-=======
-﻿# Notebook AI
 
 ## Overview
 
