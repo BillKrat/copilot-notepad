@@ -38,10 +38,14 @@ This project demonstrates a modern full-stack application architecture using:
 - **Real-time UI**: Modern Angular interface with responsive design
 - **Service Discovery**: Aspire handles service orchestration
 - **Development Experience**: Hot reload and integrated debugging
+- **Health Monitoring**: Built-in health checks and monitoring
+- **Error Handling**: Global exception handling with structured logging
+- **Input Validation**: Comprehensive request validation with detailed error messages
+- **AI Integration Ready**: Service abstractions prepared for OpenAI integration
 
 ## Prerequisites
 
-- .NET 8.0 SDK or later
+- .NET 9.0 SDK or later
 - Node.js 18+ and npm
 - Auth0 account (for authentication setup)
 
@@ -148,11 +152,14 @@ The API provides the following endpoints (all require authentication):
 ## Technology Stack
 
 ### Backend
-- .NET 8.0
+- .NET 9.0
 - ASP.NET Core Web API
 - Entity Framework Core (In-Memory)
 - Microsoft.AspNetCore.Authentication.JwtBearer
-- .NET Aspire
+- .NET Aspire 9.5
+- Global exception handling
+- Structured logging with JSON console
+- Health checks endpoint
 
 ### Frontend
 - Angular 20+
