@@ -5,7 +5,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <SpaRoot>.</SpaRoot>
     <DefaultItemExcludes>$(DefaultItemExcludes);$(SpaRoot)node_modules\**</DefaultItemExcludes>
-    <UserSecretsId>5ddc3e66-e73e-48cb-bcd5-9e37ee21fb11</UserSecretsId>
+    <UserSecretsId>b8429692-3357-45bf-8b0d-a5da4e3225ad</UserSecretsId>
   </PropertyGroup>
 
   <ItemGroup>

@@ -19,6 +19,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "notebookai.client", "notebo
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NotePadAI.ProjectSetup", "NotePadAI.ProjectSetup\NotePadAI.ProjectSetup.csproj", "{7A59DBF0-A218-42C3-9CA9-7A4AAE60687F}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NotebookAI.Ftp", "NotebookAI.Ftp\NotebookAI.Ftp.csproj", "{53BCD297-2E6A-42FA-B689-A0619839354F}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -45,6 +47,10 @@ Global
 		{7A59DBF0-A218-42C3-9CA9-7A4AAE60687F}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{7A59DBF0-A218-42C3-9CA9-7A4AAE60687F}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{7A59DBF0-A218-42C3-9CA9-7A4AAE60687F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{53BCD297-2E6A-42FA-B689-A0619839354F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{53BCD297-2E6A-42FA-B689-A0619839354F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{53BCD297-2E6A-42FA-B689-A0619839354F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{53BCD297-2E6A-42FA-B689-A0619839354F}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
