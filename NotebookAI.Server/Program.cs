@@ -2,6 +2,10 @@ using Microsoft.OpenApi.Models;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Security.Claims;
+using Microsoft.SemanticKernel;
+using Microsoft.Extensions.Options;
+using NotebookAI.Server.Settings;
+using NotebookAI.Server.Services;
 
 namespace NotebookAI.Server;
 
@@ -11,6 +15,9 @@ public class Program
     {
         var builder = WebApplication.CreateBuilder(args);
         builder.AddServiceDefaults();
+
+        // Bind AI settings
+        builder.Services.Configure<AiSettings>(builder.Configuration.GetSection("Ai"));
 
         // Get Auth0 configuration from user secrets / appsettings
         var auth0Domain = builder.Configuration["Auth0:Domain"];
@@ -124,6 +131,59 @@ public class Program
                 .AllowAnyHeader()
                 .AllowCredentials();
             });
+        });
+
+        // Register in-memory Saints document store & RAG service
+        builder.Services.AddSingleton<ISaintsDocumentStore, InMemorySaintsDocumentStore>();
+        builder.Services.AddSingleton<SaintsRagService>();
+
+        // Register Semantic Kernel (dual provider) + embeddings
+        builder.Services.AddSingleton(sp =>
+        {
+            var config = sp.GetRequiredService<IConfiguration>();
+            var ai = sp.GetRequiredService<IOptions<AiSettings>>().Value;
+
+            var kb = Kernel.CreateBuilder();
+            kb.Services.AddLogging();
+
+            var provider = ai.Provider?.Trim() ?? "OpenAI";
+            var chatModel = ai.ChatModelId ?? "gpt-4o-mini";
+            var embeddingModel = ai.EmbeddingModelId ?? "text-embedding-3-small";
+
+            if (provider.Equals("Azure", StringComparison.OrdinalIgnoreCase))
+            {
+                var endpoint = ai.AzureEndpoint ?? config["AZURE_OPENAI_ENDPOINT"];
+                var apiKey = ai.AzureApiKey ?? config["AZURE_OPENAI_API_KEY"] ?? Environment.GetEnvironmentVariable("AZURE_OPENAI_API_KEY");
+                var deployment = ai.AzureChatDeployment ?? "gpt-4o";
+                var embeddingDeployment = ai.AzureEmbeddingDeployment ?? "text-embedding-3-small";
+                if (string.IsNullOrWhiteSpace(endpoint) || string.IsNullOrWhiteSpace(apiKey))
+                {
+                    throw new InvalidOperationException("Azure OpenAI configuration missing Endpoint or ApiKey");
+                }
+                kb.AddAzureOpenAIChatCompletion(
+                    deploymentName: deployment,
+                    endpoint: endpoint,
+                    apiKey: apiKey);
+                kb.AddAzureOpenAITextEmbeddingGeneration(
+                    deploymentName: embeddingDeployment,
+                    endpoint: endpoint,
+                    apiKey: apiKey);
+            }
+            else
+            {
+                var apiKey = ai.OpenAIApiKey ?? config["OpenAI:ApiKey"] ?? Environment.GetEnvironmentVariable("OPENAI_API_KEY");
+                if (string.IsNullOrWhiteSpace(apiKey))
+                {
+                    throw new InvalidOperationException("OpenAI ApiKey not configured");
+                }
+                kb.AddOpenAIChatCompletion(
+                    modelId: chatModel,
+                    apiKey: apiKey);
+                kb.AddOpenAITextEmbeddingGeneration(
+                    modelId: embeddingModel,
+                    apiKey: apiKey);
+            }
+            return kb.Build();
         });
 
         var app = builder.Build();
