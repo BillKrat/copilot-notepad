@@ -11,5 +11,16 @@
 		<PackageReference Include="Microsoft.Extensions.Logging" />
 		<PackageReference Include="Microsoft.SemanticKernel" />
 	</ItemGroup>
+
+	<ItemGroup>
+	  <ProjectReference Include="..\Adventures.Shared\Adventures.Shared.csproj" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <Folder Include="Interfaces\" />
+	  <Folder Include="Models\" />
+	  <Folder Include="Rag\" />
+	  <Folder Include="Stores\" />
+	</ItemGroup>
 	
 </Project>

@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using NotebookAI.Services.Interfaces;
-using NotebookAI.Services.Models;
+using NotebookAI.Services.Documents;
+using Adventures.Shared.Rag;
 
 namespace NotebookAI.Server.Controllers;
 
@@ -10,35 +10,35 @@ namespace NotebookAI.Server.Controllers;
 [Authorize]
 public class SaintsController : ControllerBase
 {
-    private readonly ISaintsDocumentStore _store;
-    private readonly SaintsRagService _rag;
+    private readonly IBookDocumentStore _store; 
+    private readonly IRagService<BookDocument> _rag; 
     private readonly ILogger<SaintsController> _logger;
 
-    public SaintsController(ISaintsDocumentStore store, SaintsRagService rag, ILogger<SaintsController> logger)
+    public SaintsController(IBookDocumentStore store, IRagService<BookDocument> rag, ILogger<SaintsController> logger)
     {
         _store = store;
         _rag = rag;
         _logger = logger;
     }
 
-    [HttpPost("documents")] // Add or update a document
-    public async Task<IActionResult> UpsertDocument([FromBody] SaintDocumentInput input, CancellationToken ct)
+    [HttpPost("documents")] 
+    public async Task<IActionResult> UpsertDocument([FromBody] BookDocumentInput input, CancellationToken ct)
     {
         if (input == null || string.IsNullOrWhiteSpace(input.Id) || string.IsNullOrWhiteSpace(input.Content))
             return BadRequest("Invalid document input");
-        var doc = new SaintDocument(input.Id, input.Title ?? input.Id, input.Author ?? "Unknown", input.Date ?? DateTime.UtcNow.Date, input.Content, input.Tags);
+        var doc = new BookDocument(input.Id, input.Title ?? input.Id, input.Author ?? "Unknown", input.Date ?? DateTime.UtcNow.Date, input.Content, input.Tags);
         await _store.AddOrUpdateAsync(doc, ct);
         return Ok();
     }
 
-    [HttpGet("documents")] // List docs
+    [HttpGet("documents")] 
     public async Task<IActionResult> ListDocuments(CancellationToken ct)
     {
         var all = await _store.GetAllAsync(ct);
         return Ok(all.Select(d => new { d.Id, d.Title, d.Author, d.Date }));
     }
 
-    [HttpPost("ask")] // RAG question
+    [HttpPost("ask")] 
     public async Task<IActionResult> Ask([FromBody] AskRequest req, CancellationToken ct)
     {
         if (req == null || string.IsNullOrWhiteSpace(req.Question))
@@ -47,7 +47,7 @@ public class SaintsController : ControllerBase
         return Ok(new { answer });
     }
 
-    public sealed class SaintDocumentInput
+    public sealed class BookDocumentInput
     {
         public string Id { get; set; } = string.Empty;
         public string? Title { get; set; }

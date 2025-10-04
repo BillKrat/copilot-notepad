@@ -1,22 +1,22 @@
-using Microsoft.Extensions.AI; // New abstractions
-using Microsoft.SemanticKernel;
-using Microsoft.SemanticKernel.ChatCompletion;
-using NotebookAI.Services.Interfaces;
 using System.Collections.Concurrent;
 using System.Text;
+using Adventures.Shared.Documents;
+using Microsoft.Extensions.AI;
+using Microsoft.SemanticKernel;
+using Microsoft.SemanticKernel.ChatCompletion;
 
-namespace NotebookAI.Services.Models;
+namespace Adventures.Shared.Rag;
 
-public sealed class SaintsRagService
+public sealed class InMemoryRagService<TDocument> : IRagService<TDocument> where TDocument : IDocument
 {
     private readonly Kernel _kernel;
-    private readonly ISaintsDocumentStore _store;
-    private readonly IEmbeddingGenerator<string, Embedding<float>> _embedder; // Updated type
+    private readonly IDocumentStore<TDocument> _store;
+    private readonly IEmbeddingGenerator<string, Embedding<float>> _embedder;
 
+    private sealed record EmbeddedDoc(string Id, float[] Vector, TDocument Document);
     private readonly ConcurrentDictionary<string, EmbeddedDoc> _embedded = new(StringComparer.OrdinalIgnoreCase);
-    private sealed record EmbeddedDoc(string Id, string Title, string Author, DateTime Date, float[] Vector, string Content);
 
-    public SaintsRagService(Kernel kernel, ISaintsDocumentStore store)
+    public InMemoryRagService(Kernel kernel, IDocumentStore<TDocument> store)
     {
         _kernel = kernel;
         _store = store;
@@ -30,11 +30,9 @@ public sealed class SaintsRagService
         foreach (var d in all)
         {
             if (_embedded.ContainsKey(d.Id)) continue;
-            var generated = await _embedder.GenerateAsync([d.Content], cancellationToken: ct);
-            var emb = generated[0];
+            var emb = (await _embedder.GenerateAsync([d.Content], cancellationToken: ct))[0];
             var vectorArray = emb.Vector.ToArray();
-            var doc = new EmbeddedDoc(d.Id, d.Title, d.Author, d.Date, vectorArray, d.Content);
-            if (_embedded.TryAdd(d.Id, doc)) added++;
+            if (_embedded.TryAdd(d.Id, new EmbeddedDoc(d.Id, vectorArray, d))) added++;
         }
         return added;
     }
@@ -46,13 +44,11 @@ public sealed class SaintsRagService
         {
             return "No documents indexed yet.";
         }
-
-        var generated = await _embedder.GenerateAsync([question], cancellationToken: ct);
-        var queryEmbedding = generated[0];
+        var queryEmbedding = (await _embedder.GenerateAsync([question], cancellationToken: ct))[0];
         var queryVec = queryEmbedding.Vector.ToArray();
 
         var ranked = _embedded.Values
-            .Select(d => new { Doc = d, Score = CosineSimilarity(queryVec, d.Vector) })
+            .Select(d => new { d.Document, Score = CosineSimilarity(queryVec, d.Vector) })
             .OrderByDescending(x => x.Score)
             .Take(Math.Max(1, top))
             .ToList();
@@ -60,18 +56,18 @@ public sealed class SaintsRagService
         var sb = new StringBuilder();
         foreach (var r in ranked)
         {
-            sb.AppendLine($"[Score {r.Score:F3}] {r.Doc.Title} by {r.Doc.Author} ({r.Doc.Date:yyyy-MM-dd})");
-            var snippet = r.Doc.Content.Length > 600 ? r.Doc.Content[..600] + "..." : r.Doc.Content;
+            sb.AppendLine($"[Score {r.Score:F3}] {r.Document.Title} by {r.Document.Author} ({r.Document.Date:yyyy-MM-dd})");
+            var snippet = r.Document.Content.Length > 600 ? r.Document.Content[..600] + "..." : r.Document.Content;
             sb.AppendLine(snippet);
             sb.AppendLine();
         }
 
         var context = sb.ToString();
-        var prompt = $"You are a helpful assistant answering questions based only on the provided primary source excerpts from saints. If the context is insufficient, say you don't have enough information.\nContext:\n{context}\nQuestion: {question}\nAnswer:";
+        var prompt = $"You are a helpful assistant. Base answers only on the provided context unless generally accepted public knowledge is required.\nContext:\n{context}\nQuestion: {question}\nAnswer:";
 
         var chat = _kernel.GetRequiredService<IChatCompletionService>();
         var history = new ChatHistory();
-        history.AddSystemMessage("Answer using only the supplied context unless a universally known fact of Christian theology is needed to clarify.");
+        history.AddSystemMessage("Answer using only the supplied context unless a universally known fact is needed.");
         history.AddUserMessage(prompt);
         var response = await chat.GetChatMessageContentAsync(history, kernel: _kernel, cancellationToken: ct);
         return response.Content ?? string.Empty;

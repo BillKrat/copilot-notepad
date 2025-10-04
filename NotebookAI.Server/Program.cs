@@ -1,11 +1,11 @@
 using Adventures.Shared.AI;
 using Adventures.Shared.Extensions;
+using Adventures.Shared.Documents;
+using Adventures.Shared.Rag;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
-using NotebookAI.Services.Interfaces;
-using NotebookAI.Services.Models;
-using NotebookAI.Services.Stores;
+using NotebookAI.Services.Documents;
 using System.Security.Claims;
 
 namespace NotebookAI.Server;
@@ -116,8 +116,10 @@ public class Program
             });
         });
 
-        builder.Services.AddSingleton<ISaintsDocumentStore, InMemorySaintsDocumentStore>();
-        builder.Services.AddSingleton<SaintsRagService>();
+        // Generic document + RAG wiring
+        builder.Services.AddSingleton<IBookDocumentStore, InMemoryBookDocumentStore>();
+        builder.Services.AddSingleton(typeof(IDocumentStore<>), typeof(InMemoryDocumentStore<>));
+        builder.Services.AddSingleton<IRagService<BookDocument>, InMemoryRagService<BookDocument>>();
 
         // Refactored AI kernel registration
         builder.Services.AddAiKernel(builder.Configuration);
