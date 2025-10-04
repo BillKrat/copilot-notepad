@@ -8,6 +8,8 @@
     <UserSecretsId>b8429692-3357-45bf-8b0d-a5da4e3225ad</UserSecretsId>
   </PropertyGroup>
 
+  <!-- Rely on central TreatWarningsAsErrors -->
+
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.SpaServices.Extensions" />
   </ItemGroup>

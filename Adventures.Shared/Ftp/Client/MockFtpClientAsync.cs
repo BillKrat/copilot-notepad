@@ -5,7 +5,8 @@ namespace Adventures.Shared.Ftp.Client
 {
     public class MockFtpClientAsync : IFtpClientAsync
     {
-        private bool _connected;
+        // Track connection state only if needed externally; suppress warning if intentionally unused
+        private bool _connected; // Used for lifecycle simulation
 
         public List<string> CreatedDirectories = new();
         public List<string> DeletedDirectories = new();
@@ -14,7 +15,6 @@ namespace Adventures.Shared.Ftp.Client
         public List<string> UploadedFiles = new();
         public List<string> DeletedFiles = new();
 
-        // Simple in-memory sets for existence simulation
         private readonly HashSet<string> _directories = new(StringComparer.OrdinalIgnoreCase) { "/" };
         private readonly HashSet<string> _files = new(StringComparer.OrdinalIgnoreCase);
 
@@ -25,6 +25,8 @@ namespace Adventures.Shared.Ftp.Client
             if (!x.StartsWith('/')) x = "/" + x;
             return x.Replace("//", "/");
         }
+
+        public bool IsConnected => _connected; // Added property so field is considered used
 
         public Task ConnectAsync(CancellationToken token)
         {
@@ -51,15 +53,10 @@ namespace Adventures.Shared.Ftp.Client
             => Task.FromResult<DateTime?>(_files.Contains(Normalize(remotePath)) ? DateTime.UtcNow : null);
 
         public Task<IEnumerable<FtpListItem>> ListAsync(string path, CancellationToken token)
-        {
-            // Minimal mock: return empty listing (could be extended later)
-            return Task.FromResult<IEnumerable<FtpListItem>>(Array.Empty<FtpListItem>());
-        }
+            => Task.FromResult<IEnumerable<FtpListItem>>(Array.Empty<FtpListItem>());
 
         public Task<IEnumerable<string>> ListDirectoryAsync(string path, CancellationToken token)
-        {
-            return Task.FromResult<IEnumerable<string>>(new[] { $"{Normalize(path)}/file1.txt", $"{Normalize(path)}/file2.txt" });
-        }
+            => Task.FromResult<IEnumerable<string>>(new[] { $"{Normalize(path)}/file1.txt", $"{Normalize(path)}/file2.txt" });
 
         public Task CreateDirectoryAsync(string path, CancellationToken token)
         {

@@ -3,6 +3,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using Microsoft.SemanticKernel;
+using Microsoft.Extensions.AI;
 
 namespace Adventures.Shared.Extensions;
 
@@ -31,7 +32,10 @@ public static class AiKernelServiceCollectionExtensions
                     throw new InvalidOperationException("Azure OpenAI configuration missing Endpoint or ApiKey");
                 }
                 kb.AddAzureOpenAIChatCompletion(chatDeployment, endpoint, apiKey);
-                kb.AddAzureOpenAITextEmbeddingGeneration(embeddingDeployment, endpoint, apiKey);
+                // Suppress experimental diagnostic for embedding generator
+                #pragma warning disable SKEXP0010
+                kb.AddAzureOpenAIEmbeddingGenerator(embeddingDeployment, endpoint, apiKey);
+                #pragma warning restore SKEXP0010
             }
             else
             {
@@ -41,7 +45,9 @@ public static class AiKernelServiceCollectionExtensions
                     throw new InvalidOperationException("OpenAI ApiKey not configured");
                 }
                 kb.AddOpenAIChatCompletion(chatModel, apiKey);
-                kb.AddOpenAITextEmbeddingGeneration(embeddingModel, apiKey);
+                #pragma warning disable SKEXP0010
+                kb.AddOpenAIEmbeddingGenerator(embeddingModel, apiKey);
+                #pragma warning restore SKEXP0010
             }
             return kb.Build();
         });

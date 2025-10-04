@@ -1,9 +1,8 @@
+using Microsoft.Extensions.AI; // New abstractions
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.ChatCompletion;
-using Microsoft.SemanticKernel.Embeddings;
 using NotebookAI.Services.Interfaces;
 using System.Collections.Concurrent;
-using System.Numerics;
 using System.Text;
 
 namespace NotebookAI.Services.Models;
@@ -12,7 +11,7 @@ public sealed class SaintsRagService
 {
     private readonly Kernel _kernel;
     private readonly ISaintsDocumentStore _store;
-    private readonly ITextEmbeddingGenerationService _embedder;
+    private readonly IEmbeddingGenerator<string, Embedding<float>> _embedder; // Updated type
 
     private readonly ConcurrentDictionary<string, EmbeddedDoc> _embedded = new(StringComparer.OrdinalIgnoreCase);
     private sealed record EmbeddedDoc(string Id, string Title, string Author, DateTime Date, float[] Vector, string Content);
@@ -21,7 +20,7 @@ public sealed class SaintsRagService
     {
         _kernel = kernel;
         _store = store;
-        _embedder = _kernel.GetRequiredService<ITextEmbeddingGenerationService>();
+        _embedder = _kernel.GetRequiredService<IEmbeddingGenerator<string, Embedding<float>>>();
     }
 
     public async Task<int> EnsureIndexedAsync(CancellationToken ct = default)
@@ -31,9 +30,9 @@ public sealed class SaintsRagService
         foreach (var d in all)
         {
             if (_embedded.ContainsKey(d.Id)) continue;
-            var emb = await _embedder.GenerateEmbeddingAsync(d.Content, _kernel, ct);
-            // Embedding<float> exposes Vector property or similar enumerator
-            var vectorArray = emb.ToArray();
+            var generated = await _embedder.GenerateAsync([d.Content], cancellationToken: ct);
+            var emb = generated[0];
+            var vectorArray = emb.Vector.ToArray();
             var doc = new EmbeddedDoc(d.Id, d.Title, d.Author, d.Date, vectorArray, d.Content);
             if (_embedded.TryAdd(d.Id, doc)) added++;
         }
@@ -48,10 +47,10 @@ public sealed class SaintsRagService
             return "No documents indexed yet.";
         }
 
-        var queryEmbedding = await _embedder.GenerateEmbeddingAsync(question, _kernel, ct);
-        var queryVec = queryEmbedding.ToArray();
+        var generated = await _embedder.GenerateAsync([question], cancellationToken: ct);
+        var queryEmbedding = generated[0];
+        var queryVec = queryEmbedding.Vector.ToArray();
 
-        // Compute cosine similarity
         var ranked = _embedded.Values
             .Select(d => new { Doc = d, Score = CosineSimilarity(queryVec, d.Vector) })
             .OrderByDescending(x => x.Score)
