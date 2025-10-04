@@ -1,8 +1,10 @@
 using Adventures.Shared.AI;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using Microsoft.SemanticKernel;
 
-namespace NotebookAI.Server.Extensions;
+namespace Adventures.Shared.Extensions;
 
 public static class AiKernelServiceCollectionExtensions
 {

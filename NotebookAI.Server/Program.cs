@@ -1,8 +1,8 @@
 using Adventures.Shared.AI;
+using Adventures.Shared.Extensions;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
-using NotebookAI.Server.Extensions;
 using NotebookAI.Services.Interfaces;
 using NotebookAI.Services.Models;
 using NotebookAI.Services.Stores;
