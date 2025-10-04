@@ -8,6 +8,7 @@ using Microsoft.OpenApi.Models;
 using NotebookAI.Services.Documents;
 using NotebookAI.Services.Rag;
 using System.Security.Claims;
+using NotebookAI.Services.Persistence; // Added for persistence factory
 
 namespace NotebookAI.Server;
 
@@ -117,8 +118,11 @@ public class Program
             });
         });
 
+        // Persistence (EF Core) - replaces in-memory document store
+        builder.Services.AddNotebookPersistence(builder.Configuration);
+
         // Document & RAG wiring
-        builder.Services.AddSingleton<IBookDocumentStore, InMemoryBookDocumentStore>();
+        // builder.Services.AddSingleton<IBookDocumentStore, InMemoryBookDocumentStore>(); // replaced by EF implementation
         builder.Services.AddSingleton(typeof(IDocumentStore<>), typeof(InMemoryDocumentStore<>));
         builder.Services.AddSingleton<IChunker<BookDocument, BookChunk>, ParagraphChunker>();
         builder.Services.AddSingleton<IVectorIndex, InMemoryVectorIndex>();
