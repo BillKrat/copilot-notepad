@@ -19,6 +19,7 @@
     <ProjectReference Include="..\Adventures.Shared\Adventures.Shared.csproj" />
     <ProjectReference Include="..\NotebookAI.ServiceDefaults\NotebookAI.ServiceDefaults.csproj" />
     <ProjectReference Include="..\NotebookAI.Services\NotebookAI.Services.csproj" />
+    <ProjectReference Include="..\NotebookAI.Triples\NotebookAI.Triples.csproj" />
   </ItemGroup>
 
 </Project>

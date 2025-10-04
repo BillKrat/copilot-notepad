@@ -9,6 +9,9 @@ using NotebookAI.Services.Documents;
 using NotebookAI.Services.Rag;
 using System.Security.Claims;
 using NotebookAI.Services.Persistence; // Added for persistence factory
+using NotebookAI.Triples.TripleStore; // triple store
+using NotebookAI.Triples.Config; // book config provider
+using NotebookAI.Triples.Files; // file store
 
 namespace NotebookAI.Server;
 
@@ -121,8 +124,15 @@ public class Program
         // Persistence (EF Core) - replaces in-memory document store
         builder.Services.AddNotebookPersistence(builder.Configuration);
 
+        // Triple store (book/blog metadata, ontology)
+        builder.Services.AddTripleStore(builder.Configuration);
+        builder.Services.AddBookConfigProvider(builder.Configuration);
+        builder.Services.AddFileStore(builder.Configuration);
+
+        // Seed triple store if empty (ontology + sample data)
+        builder.Services.AddHostedService<TripleStoreSeeder>();
+
         // Document & RAG wiring
-        // builder.Services.AddSingleton<IBookDocumentStore, InMemoryBookDocumentStore>(); // replaced by EF implementation
         builder.Services.AddSingleton(typeof(IDocumentStore<>), typeof(InMemoryDocumentStore<>));
         builder.Services.AddSingleton<IChunker<BookDocument, BookChunk>, ParagraphChunker>();
         builder.Services.AddSingleton<IVectorIndex, InMemoryVectorIndex>();
@@ -160,4 +170,33 @@ public class Program
         app.MapFallbackToFile("/index.html");
         app.Run();
     }
+}
+
+public sealed class TripleStoreSeeder : IHostedService
+{
+    private readonly IServiceProvider _sp;
+    private readonly ILogger<TripleStoreSeeder> _logger;
+
+    public TripleStoreSeeder(IServiceProvider sp, ILogger<TripleStoreSeeder> logger)
+    {
+        _sp = sp; _logger = logger;
+    }
+
+    public async Task StartAsync(CancellationToken cancellationToken)
+    {
+        using var scope = _sp.CreateScope();
+        var store = scope.ServiceProvider.GetRequiredService<ITripleStore>();
+        var count = await store.CountAsync(cancellationToken);
+        if (count == 0)
+        {
+            _logger.LogInformation("Seeding triple store ontology...");
+            foreach (var (s,p,o,d,dt) in NotebookAI.Triples.Ontology.BookOntologySeed.Triples)
+            {
+                await store.CreateAsync(s,p,o,d,dt,cancellationToken);
+            }
+            _logger.LogInformation("Triple store seeded with {Count} triples", await store.CountAsync(cancellationToken));
+        }
+    }
+
+    public Task StopAsync(CancellationToken cancellationToken) => Task.CompletedTask;
 }
