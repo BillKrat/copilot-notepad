@@ -391,3 +391,4 @@ FodyWeavers.xsd
 /NotebookAI.Server/._.DS_Store
 /NotebookAI.Server/appsettings.Development.json
 /NotebookAI.Server/appsettings.Production.json
+/NotebookAI.Triples/Artifacts/PowerToolsReadMe.md
