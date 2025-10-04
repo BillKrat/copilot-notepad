@@ -1,7 +1,6 @@
-
 # Copilot Notepad
 
-A hybrid framework notepad application built with .NET Aspire, ASP.NET Core Web API, and Angular with Auth0 authentication.  This project was generated as an exercise in AI-assisted development using GitHub Copilot.
+A hybrid framework notepad application built with .NET Aspire, ASP.NET Core Web API, Angular, and a resilient FTP blue/green deployment utility. This project was generated as an exercise in AI-assisted development using GitHub Copilot.
 
 [▶ Watch the setup video (demonstrates hybrid capabilities)](https://www.global-webnet.com/files/NotebookAI-setup.mp4)
 
@@ -11,13 +10,13 @@ MIT License - see LICENSE file for details.
 
 ## Overview
 
-This project demonstrates a modern full-stack application architecture using:
+This solution now includes:
 
-- **.NET Aspire** - For application orchestration and service discovery
-- **ASP.NET Core Web API** - Backend service with JWT authentication
-- **Angular** - Frontend client application with Auth0 integration
-- **Auth0** - Authentication and authorization provider
-- **Entity Framework Core** - In-memory database for notes storage
+- **NotebookAI.Server** (former ApiService) – ASP.NET Core Web API (.NET 9) with Auth0 authentication.
+- **Angular Client (notebookai.client)** – SPA front-end with Auth0 integration.
+- **Adventures.Shared** – Shared utilities library (FTP abstraction, logging, retry policies, connection pooling, progress reporting).
+- **NotebookAI.Ftp** – Stand‑alone deployment console using blue/green (slot) strategy with automatic rollback and health checks.
+- **Aspire AppHost & ServiceDefaults** – Orchestration and standardized service configuration.
 
 ## Architecture
 
@@ -28,171 +27,188 @@ This project demonstrates a modern full-stack application architecture using:
 │                 │    │                  │    │                 │
 └─────────────────┘    └──────────────────┘    └─────────────────┘
          │                       │
-         │                       │
+         │  Health / Notes API   │
          ▼                       ▼
 ┌─────────────────┐    ┌──────────────────┐
 │  Aspire App     │    │   In-Memory      │
 │     Host        │    │   Database       │
-│  (Orchestrator) │    │                  │
 └─────────────────┘    └──────────────────┘
+         ▲
+         │ Deployment (Blue/Green via FTP)
+         ▼
+┌─────────────────┐
+│  FTP Deployment │  (NotebookAI.Ftp + Adventures.Shared)
+│  Slots: base    │
+│        slot1    │ (staging)
+│        slot2    │ (backup/rollback)
+└─────────────────┘
 ```
 
-## Features
+## Key Enhancements (Current State)
 
-- **Secure Authentication**: Auth0 integration with JWT tokens
-- **Notes Management**: Create, read, update, and delete notes
-- **User Isolation**: Each user can only access their own notes
-- **Real-time UI**: Modern Angular interface with responsive design
-- **Service Discovery**: Aspire handles service orchestration
-- **Development Experience**: Hot reload and integrated debugging
-- **Health Monitoring**: Built-in health checks and monitoring
-- **Error Handling**: Global exception handling with structured logging
-- **Input Validation**: Comprehensive request validation with detailed error messages
-- **AI Integration Ready**: Service abstractions prepared for OpenAI integration
+- **Robust FTP Abstraction**: `IFtpClientAsync` with FluentFTP implementation (`FluentFtpClientAsync`).
+  - Connection lifecycle, existence checks, metadata, single & directory upload/download, recursive delete, move/rename, parallel batching, progress callbacks.
+  - Polly-based retries with exponential wait (configurable pattern ready).
+- **Connection Pooling**: Scoped lifetime pooling (`PooledFtpClientAsync`) with configurable `PoolSize` (default 8).
+- **Dependency Injection Extensions**: `AddFtp(...)` for `IServiceCollection`, `HostApplicationBuilder`, `IHostBuilder` (and optional `WebApplicationBuilder` via symbol) with options binding.
+- **Blue/Green Deployment Utility (`NotebookAI.Ftp`)**:
+  - Uploads new build to staging slot (slot1).
+  - Validates staging (ensures files exist) before touching production.
+  - Backs up current production to backup slot (slot2) with rollback if partial moves fail.
+  - Promotes staging to production.
+  - Post-deploy health checks (configurable required files) – automatic rollback if failed.
+  - Cleans staging only after successful health & promotion.
+  - Progress logging via `ILogger` + `IProgress<FtpProgress>`.
+  - Parallel-friendly design (ready to leverage explicit parallel file upload if needed).
+- **Automatic Rollback**: Restores contents from backup slot if validation or health fails.
+- **Progress & Logging**: Unified structured logging (can replace logger in DI to adapt output, e.g., console UI or telemetry).
+- **Configuration Driven**: FTP credentials & remote folder from user secrets / config section `Ftp`.
+
+## FTP Configuration
+
+Example `UserSecrets` (already supported):
+```
+"Ftp": {
+  "host": "your-ftp-host",
+  "remote-folder": "/global",
+  "port": 21,
+  "username": "user",
+  "password": "secret",
+  "site-url": "https://www.example.com"
+}
+```
+Optional deployment settings:
+```
+"Deployment": {
+  "Parallelism": 8,
+  "HealthCheck": {
+    "Paths": ["index.html", "assets/app.js"]
+  }
+}
+```
+If `Deployment:HealthCheck:Paths` is omitted, the deployment tool defaults to verifying `index.html` exists after promotion.
+
+## Running the Deployment Utility
+
+```
+# From solution root
+ dotnet run --project NotebookAI.Ftp <optional-path-to-built-web-dist>
+```
+If no path is supplied, it attempts to locate `notebookai.client/dist/notebookai.client` automatically.
+
+Deployment phases (all safe & reversible):
+1. Prepare folders (base, slot1, slot2).
+2. Clean staging slot only.
+3. Upload new artifacts to slot1 with progress.
+4. Validate staging.
+5. Backup production to slot2 (rollback on failure).
+6. Promote slot1 → base (rollback on failure mid-move).
+7. Health checks (rollback to slot2 if any fail).
+8. Clean staging slot.
+
+## Features (Application Layer)
+
+- **Secure Authentication** (Auth0 JWT)
+- **Notes CRUD with User Isolation**
+- **Global Exception Handling & Structured Logging**
+- **Health Monitoring** (API + Deployment health checks)
+- **Input Validation**
+- **AI-Ready Services** (extensible for future integrations)
+- **Modern Angular Frontend**
+- **Aspire Orchestration** (service defaults, local diagnostics)
 
 ## Prerequisites
 
-- .NET 9.0 SDK or later
-- Node.js 18+ and npm
-- Auth0 account (for authentication setup)
+- .NET 9.0 SDK (solution targets net9 + net8 where noted)
+- Node.js 18+
+- Auth0 account (for auth)
 
-## Getting Started
+## Getting Started (Core App)
 
-### 1. Clone the Repository
-
-```bash
+Clone & build:
+```
 git clone https://github.com/BillKrat/copilot-notepad.git
 cd copilot-notepad
 ```
 
-### 2. Configure Auth0
+Configure Auth0 (as previously documented) and set `UserSecrets` for FTP & Auth0.
 
-1. Create an Auth0 application at [auth0.com](https://auth0.com)
-2. Set up your Auth0 application:
-   - Application Type: Single Page Application (for Angular)
-   - Allowed Callback URLs: `http://localhost:4200`
-   - Allowed Logout URLs: `http://localhost:4200`
-   - Allowed Web Origins: `http://localhost:4200`
-3. Create an API in Auth0:
-   - Name: Copilot Notepad API
-   - Identifier: `https://copilot-notepad-api`
-4. Update the configuration files:
-
-**Backend (CopilotNotepad.ApiService/appsettings.json):**
-```json
-{
-  "Auth0": {
-    "Domain": "https://your-auth0-domain.auth0.com",
-    "Audience": "https://copilot-notepad-api"
-  }
-}
+### Run with Aspire
 ```
-
-**Frontend (CopilotNotepad.Web/src/app/auth0.config.ts):**
-```typescript
-export const AUTH0_CONFIG: Auth0Config = {
-  domain: 'your-auth0-domain.auth0.com',
-  clientId: 'your-auth0-client-id',
-  audience: 'https://copilot-notepad-api',
-  redirectUri: window.location.origin
-};
-```
-
-> **Note:** For development, you can create placeholder values, but Auth0 authentication will be required for the app to fully function.
-
-### 3. Run the Application
-
-**Option 1: Using Aspire (Recommended for Production)**
-```bash
-# Install .NET Aspire workload (if not already installed)
 dotnet workload install aspire
-
-# Build the solution
-dotnet build
-
-# Run the Aspire application
-dotnet run --project CopilotNotepad.AppHost
+(dotnet build)
+dotnet run --project NotebookAI.AppHost
 ```
 
-The Aspire dashboard will open in your browser, showing the API Service running.
-
-**Option 2: Development Mode (Recommended for Development)**
-
-Run the API and Angular app separately for the best development experience:
-
-```bash
-# Terminal 1: Run the API service
-dotnet run --project CopilotNotepad.ApiService
-
-# Terminal 2: Run the Angular app
-cd CopilotNotepad.Web
+### Development Mode
+```
+# API (Server)
+dotnet run --project NotebookAI.Server
+# Frontend
+cd notebookai.client
+npm install
 npm start
 ```
 
-The API will run on `https://localhost:7001` and the Angular app on `http://localhost:4200`.
+## Health Checks & Rollback Logic
 
-### 4. Development
+- Deployment health checks are file-based (existence). Extend easily to HTTP probes or content validation by adding logic in `RunHealthChecksAsync`.
+- Rollback strategy preserves previous production state until new deployment + health succeed.
 
-For development with hot reload:
+## Extending the FTP Layer
 
-**Backend:**
-```bash
-dotnet watch --project CopilotNotepad.ApiService
-```
+You can further customize by:
+- Adding named FTP clients (multiple endpoints) via distinct option registrations.
+- Injecting custom progress loggers (implement `IProgress<FtpProgress>`).
+- Adding bandwidth throttling or checksum verification (`FtpVerify` modes) where needed.
+- Enhancing health checks: e.g., HTTP GET to `site-url` validating status 200.
 
-**Frontend:**
-```bash
-cd CopilotNotepad.Web
-npm start
-```
+## API Endpoints (Notes Service)
 
-## API Endpoints
+- GET /api/notes
+- GET /api/notes/{id}
+- POST /api/notes
+- PUT /api/notes/{id}
+- DELETE /api/notes/{id}
+(All require valid Auth0 JWT.)
 
-The API provides the following endpoints (all require authentication):
-
-- `GET /api/notes` - Get all notes for the authenticated user
-- `GET /api/notes/{id}` - Get a specific note
-- `POST /api/notes` - Create a new note
-- `PUT /api/notes/{id}` - Update an existing note
-- `DELETE /api/notes/{id}` - Delete a note
-
-## Technology Stack
-
-### Backend
-- .NET 9.0
-- ASP.NET Core Web API
-- Entity Framework Core (In-Memory)
-- Microsoft.AspNetCore.Authentication.JwtBearer
-- .NET Aspire 9.5
-- Global exception handling
-- Structured logging with JSON console
-- Health checks endpoint
-
-### Frontend
-- Angular 20+
-- TypeScript
-- SCSS
-- Auth0 SPA SDK
-- RxJS
-
-### Authentication
-- Auth0
-- JWT Tokens
-- CORS enabled for local development
-
-## Project Structure
+## Project Structure (Updated)
 
 ```
 copilot-notepad/
-├── CopilotNotepad.AppHost/           # Aspire orchestration
-├── CopilotNotepad.ServiceDefaults/   # Shared service configurations
-├── CopilotNotepad.ApiService/        # ASP.NET Core Web API
-│   ├── Models/                       # Data models
-│   ├── Data/                         # Entity Framework context
-│   └── Program.cs                    # API configuration
-├── CopilotNotepad.Web/              # Angular application
-│   ├── src/app/                     # Angular components and services
-│   ├── src/app/models/              # TypeScript models
-│   └── package.json                 # NPM dependencies
+├── NotebookAI.AppHost/              # Aspire orchestration
+├── NotebookAI.ServiceDefaults/      # Shared service defaults
+├── NotebookAI.Server/               # ASP.NET Core Web API
+│   ├── Program.cs
+│   └── ...
+├── Adventures.Shared/               # Shared libs (FTP abstraction, pooling, retry, logging)
+├── NotebookAI.Ftp/                  # Deployment console (blue/green + rollback)
+├── notebookai.client/               # Angular client
 └── CopilotNotepad.sln               # Solution file
 ```
+
+## Roadmap Ideas
+
+- HTTP-based post-deploy health checks
+- Content hash verification during upload
+- Incremental (delta) uploads
+- CDN cache purge integration
+- Automated test suite for deployment logic
+
+## Contributing
+
+PRs welcome. Please open an issue first for major proposals.
+
+## Security
+
+Never commit real secrets. Use `dotnet user-secrets` for local dev. Rotate credentials if exposed.
+
+## Acknowledgements
+
+- FluentFTP
+- Polly
+- Auth0
+- .NET Aspire Team
+
+---
+**Generated & iteratively evolved with GitHub Copilot.**
