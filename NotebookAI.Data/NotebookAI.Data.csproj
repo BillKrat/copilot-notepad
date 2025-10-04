@@ -4,10 +4,25 @@
     <TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+  <UserSecretsId>b8429692-3357-45bf-8b0d-a5da4e3225ad</UserSecretsId>
   </PropertyGroup>
 
   <ItemGroup>
+    <None Remove="NotepadTripleStore.db" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="NotepadTripleStore.db">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
+  <ItemGroup>
     <Folder Include="Scripts\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Configuration.UserSecrets" />
   </ItemGroup>
 
 </Project>

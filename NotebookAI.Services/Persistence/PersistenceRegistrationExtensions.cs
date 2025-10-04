@@ -36,14 +36,16 @@ public static class PersistenceRegistrationExtensions
         {
             if (provider.Equals("SqlServer", StringComparison.OrdinalIgnoreCase))
             {
-                options.UseSqlServer(cs, o => o.MigrationsAssembly(typeof(NotebookDbContext).Assembly.FullName));
+                options.UseSqlServer(cs); //, o => o.MigrationsAssembly(typeof(NotebookDbContext).Assembly.FullName));
             }
             else
             {
                 // SQLite; enable WAL for concurrency if file based
                 var builder = new SqliteConnectionStringBuilder(cs);
                 var fileMode = builder.DataSource != ":memory:";
-                options.UseSqlite(cs, o => o.MigrationsAssembly(typeof(NotebookDbContext).Assembly.FullName));
+                var name = typeof(NotebookDbContext).Assembly.FullName;
+
+                options.UseSqlite(cs); //, o => o.MigrationsAssembly(typeof(NotebookDbContext).Assembly.FullName));
                 if (fileMode)
                 {
                     options.UseQueryTrackingBehavior(QueryTrackingBehavior.NoTracking);
