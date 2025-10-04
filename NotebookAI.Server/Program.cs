@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using NotebookAI.Services.Documents;
+using NotebookAI.Services.Rag;
 using System.Security.Claims;
 
 namespace NotebookAI.Server;
@@ -116,10 +117,12 @@ public class Program
             });
         });
 
-        // Generic document + RAG wiring
+        // Document & RAG wiring
         builder.Services.AddSingleton<IBookDocumentStore, InMemoryBookDocumentStore>();
         builder.Services.AddSingleton(typeof(IDocumentStore<>), typeof(InMemoryDocumentStore<>));
-        builder.Services.AddSingleton<IRagService<BookDocument>, InMemoryRagService<BookDocument>>();
+        builder.Services.AddSingleton<IChunker<BookDocument, BookChunk>, ParagraphChunker>();
+        builder.Services.AddSingleton<IVectorIndex, InMemoryVectorIndex>();
+        builder.Services.AddSingleton<IAdvancedRagService, HybridRagService>();
 
         // Refactored AI kernel registration
         builder.Services.AddAiKernel(builder.Configuration);

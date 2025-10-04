@@ -1,5 +1,63 @@
 # Copilot Notepad
 
+> For architectural / AI design and RAG strategy details see [AI-for-Dummies](NotebookAI.Server/AI-for-Dummies.md).
+>
+> Quick anchors:
+> [Vision](NotebookAI.Server/AI-for-Dummies.md#vision-statement-notebookai) ·
+> [Current RAG Wiring](NotebookAI.Server/AI-for-Dummies.md#1-current-rag-wiring-programcs) ·
+> [Gap Analysis](NotebookAI.Server/AI-for-Dummies.md#7-gap-analysis-what-to-improve-next) ·
+> [Immediate Next Steps](NotebookAI.Server/AI-for-Dummies.md#8-immediate-next-steps-recommended-order) ·
+> [Migration Path](NotebookAI.Server/AI-for-Dummies.md#11-migration-path-snapshot)
+>
+> Additional docs:
+> [Server CHANGELOG](NotebookAI.Server/CHANGELOG.md) ·
+> [Client CHANGELOG](notebookai.client/CHANGELOG.md) ·
+> [Deployment Setup](NotebookAI.Server/DEPLOYMENT-SETUP.md) ·
+> [Env Setup (Client)](notebookai.client/ENVIRONMENT-SETUP.md) ·
+> [Project Setup Tool](NotebookAI.ProjectSetup/ProjectSetup.md) ·
+> [WebDeploy Guide](notebookai.client/WEBDEPLOY-README.md)
+
+## AI Architecture Snapshot (Auto‑Synced Excerpts)
+<!-- BEGIN AI-EXCERPT:VISION -->
+**Vision (condensed)**: Upload / manage multiple books, take study notes referencing chapter + paragraph, query own + subscribed notes, get grounded answers with citations. Extensible, pluggable storage & vector layers, clean ingestion → enrichment → retrieval → answer pipeline.
+<!-- END AI-EXCERPT:VISION -->
+
+<!-- BEGIN AI-EXCERPT:RAG-WIRING -->
+**Current RAG Wiring (summary)**
+```
+builder.Services.AddSingleton<IBookDocumentStore, InMemoryBookDocumentStore>();
+builder.Services.AddSingleton(typeof(IDocumentStore<>), typeof(InMemoryDocumentStore<>) );
+builder.Services.AddSingleton<IChunker<BookDocument, BookChunk>, ParagraphChunker>();
+builder.Services.AddSingleton<IVectorIndex, InMemoryVectorIndex>();
+builder.Services.AddSingleton<IAdvancedRagService, HybridRagService>();
+```
+- In-memory stores & vector index (prototype).
+- Paragraph-based chunking.
+- HybridRagService orchestrates: chunk ensure -> (naive) embed+score -> prompt with citations.
+<!-- END AI-EXCERPT:RAG-WIRING -->
+
+<!-- BEGIN AI-EXCERPT:GAPS -->
+**Key Gaps** (abbrev): embedding reuse, real ANN vector search, multi‑corpus (notes), access control, citations richness, caching, reranking, observability, background indexing.
+<!-- END AI-EXCERPT:GAPS -->
+
+<!-- BEGIN AI-EXCERPT:NEXT-STEPS -->
+**Immediate Next Steps** (top 5):
+1. Persist chunk embeddings in vector index.
+2. Add notes corpus (NoteDocument + store).
+3. Ownership / visibility metadata + filters.
+4. Real vector backend (pgvector / Azure AI Search / Qdrant).
+5. Reranking & richer citations.
+<!-- END AI-EXCERPT:NEXT-STEPS -->
+
+<!-- BEGIN AI-EXCERPT:MIGRATION -->
+**Migration Path (snapshot)**
+```
+Prototype → +Persisted Embeddings → +Notes & ACL → +Real Vector Search → +Hybrid+Rerank → +Background Indexing & Streaming
+```
+<!-- END AI-EXCERPT:MIGRATION -->
+
+---
+
 A hybrid framework notepad application built with .NET Aspire, ASP.NET Core Web API, Angular, and a resilient FTP blue/green deployment utility. This project was generated as an exercise in AI-assisted development using GitHub Copilot.
 
 [▶ Watch the setup video (demonstrates hybrid capabilities)](https://www.global-webnet.com/files/NotebookAI-setup.mp4)
