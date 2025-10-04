@@ -1,6 +1,6 @@
 ﻿# ProjectSetup Tool Guide
 
-Centralize all environment configuration in one place. The `NotePadAI.ProjectSetup` console app reads developer-local User Secrets and generates the client and server configuration files required by the solution—without committing secrets.
+Centralize all environment configuration in one place. The `NotebookAI.ProjectSetup` console app reads developer-local User Secrets and generates the client and server configuration files required by the solution—without committing secrets.
 
 What it generates
 - Client (Angular: `notebookai.client`)
@@ -32,7 +32,7 @@ Secrets remain only in User Secrets. Scripts call this tool instead of embedding
 ## First-Time Setup
 
 1) Create User Secrets
-- In Visual Studio 2022: right-click the `NotePadAI.ProjectSetup` project → Manage User Secrets.
+- In Visual Studio 2022: right-click the `NotebookAI.ProjectSetup` project → Manage User Secrets.
 - Paste a secrets schema (replace placeholders with your values):
 ```
 {
@@ -92,11 +92,11 @@ Run from the repo root (adjust paths if your folders differ).
 
 Generate development configuration
 
-dotnet run --project .\NotePadAI.ProjectSetup\NotePadAI.ProjectSetup.csproj -- --env dev --client-root ".\notebookai.client" --server-root ".\NotebookAI.Server" -v
+dotnet run --project .\NotebookAI.ProjectSetup\NotebookAI.ProjectSetup.csproj -- --env dev --client-root ".\notebookai.client" --server-root ".\NotebookAI.Server" -v
 
 Generate production configuration
 
-dotnet run --project .\NotePadAI.ProjectSetup\NotePadAI.ProjectSetup.csproj -- --env prod --client-root ".\notebookai.client" --server-root ".\NotebookAI.Server" -v
+dotnet run --project .\NotebookAI.ProjectSetup\NotebookAI.ProjectSetup.csproj -- --env prod --client-root ".\notebookai.client" --server-root ".\NotebookAI.Server" -v
 
 What gets created/updated
 - Client: `.env*`, `environment*.ts`, and `.gitignore` entries
@@ -126,7 +126,7 @@ These are computed from your `clientUrl`, `apiUrl`, and standard Swagger OAuth r
 
 Run with sync enabled
 
-dotnet run --project .\NotePadAI.ProjectSetup\NotePadAI.ProjectSetup.csproj -- --env prod --client-root ".\notebookai.client" --server-root ".\NotebookAI.Server" --sync-auth0 -v
+dotnet run --project .\NotebookAI.ProjectSetup\NotebookAI.ProjectSetup.csproj -- --env prod --client-root ".\notebookai.client" --server-root ".\NotebookAI.Server" --sync-auth0 -v
 
 Requirements
 - M2M app must have `update:clients` permission for the Management API.

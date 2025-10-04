@@ -5,7 +5,7 @@ param(
 )
 
 Write-Host "Generating configuration for $Environment..." -ForegroundColor Yellow
-dotnet run --project "..\NotePadAI.ProjectSetup\NotePadAI.ProjectSetup.csproj" -- --env $Environment --client-root "."
+dotnet run --project "..\NotebookAI.ProjectSetup\NotebookAI.ProjectSetup.csproj" -- --env $Environment --client-root "."
 if ($LASTEXITCODE -ne 0) {
   Write-Host "ERROR: Failed to generate configuration files." -ForegroundColor Red
   exit 1

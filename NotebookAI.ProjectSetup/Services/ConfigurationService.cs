@@ -1,5 +1,5 @@
 ﻿using Microsoft.Extensions.Options;
-using NotePadAI.ProjectSetup.Configuration;
+using NotebookAI.ProjectSetup.Configuration;
 
 public class ConfigurationService
 {

@@ -13,7 +13,7 @@ try {
     }
 
     if ($Verbose) { Write-Host "Generating production configuration..." -ForegroundColor Yellow }
-    dotnet run --project "..\NotePadAI.ProjectSetup\NotePadAI.ProjectSetup.csproj" -- --env prod --client-root "."
+    dotnet run --project "..\NotebookAI.ProjectSetup\NotebookAI.ProjectSetup.csproj" -- --env prod --client-root "."
     if ($LASTEXITCODE -ne 0) { throw "Failed to generate configuration files" }
 
     if ($Verbose) { Write-Host "Cleaning previous builds..." -ForegroundColor Yellow }
@@ -55,7 +55,7 @@ try {
     }
 
     if ($Verbose) { Write-Host "Restoring development configuration..." -ForegroundColor Yellow }
-    dotnet run --project "..\NotePadAI.ProjectSetup\NotePadAI.ProjectSetup.csproj" -- --env dev --client-root "."
+    dotnet run --project "..\NotebookAI.ProjectSetup\NotebookAI.ProjectSetup.csproj" -- --env dev --client-root "."
 
 } catch {
     Write-Host "ERROR: $($_.Exception.Message)" -ForegroundColor Red

@@ -11,15 +11,16 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NotebookAI.ServiceDefaults"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{8EC462FD-D22E-90A8-E5CE-7E832BA40C5D}"
 	ProjectSection(SolutionItems) = preProject
+		Documentation.qea = Documentation.qea
 		..\LICENSE.txt = ..\LICENSE.txt
 		README.md = README.md
 	EndProjectSection
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "notebookai.client", "notebookai.client\notebookai.client.csproj", "{D3DE2256-BD25-758A-890A-48A8D8412D7B}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NotePadAI.ProjectSetup", "NotePadAI.ProjectSetup\NotePadAI.ProjectSetup.csproj", "{7A59DBF0-A218-42C3-9CA9-7A4AAE60687F}"
-EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NotebookAI.Ftp", "NotebookAI.Ftp\NotebookAI.Ftp.csproj", "{53BCD297-2E6A-42FA-B689-A0619839354F}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NotebookAI.ProjectSetup", "NotebookAI.ProjectSetup\NotebookAI.ProjectSetup.csproj", "{0DF8C99F-2253-CF77-C5A3-7298B552A664}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -43,14 +44,14 @@ Global
 		{D3DE2256-BD25-758A-890A-48A8D8412D7B}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{D3DE2256-BD25-758A-890A-48A8D8412D7B}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{D3DE2256-BD25-758A-890A-48A8D8412D7B}.Release|Any CPU.Build.0 = Release|Any CPU
-		{7A59DBF0-A218-42C3-9CA9-7A4AAE60687F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{7A59DBF0-A218-42C3-9CA9-7A4AAE60687F}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{7A59DBF0-A218-42C3-9CA9-7A4AAE60687F}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{7A59DBF0-A218-42C3-9CA9-7A4AAE60687F}.Release|Any CPU.Build.0 = Release|Any CPU
 		{53BCD297-2E6A-42FA-B689-A0619839354F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{53BCD297-2E6A-42FA-B689-A0619839354F}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{53BCD297-2E6A-42FA-B689-A0619839354F}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{53BCD297-2E6A-42FA-B689-A0619839354F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0DF8C99F-2253-CF77-C5A3-7298B552A664}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0DF8C99F-2253-CF77-C5A3-7298B552A664}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0DF8C99F-2253-CF77-C5A3-7298B552A664}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0DF8C99F-2253-CF77-C5A3-7298B552A664}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

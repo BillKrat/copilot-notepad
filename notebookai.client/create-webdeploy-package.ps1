@@ -5,7 +5,7 @@ Write-Host "[*] Creating Web Deploy package for NotebookAI..." -ForegroundColor 
 
 # Ensure production configuration is generated from user-secrets
 Write-Host "[*] Generating production configuration..." -ForegroundColor Yellow
-dotnet run --project "..\NotePadAI.ProjectSetup\NotePadAI.ProjectSetup.csproj" -- --env prod --client-root "."
+dotnet run --project "..\NotebookAI.ProjectSetup\NotebookAI.ProjectSetup.csproj" -- --env prod --client-root "."
 if ($LASTEXITCODE -ne 0) { Write-Host "[ERROR] Generation failed!" -ForegroundColor Red; exit 1 }
 
 Write-Host "[*] Cleaning previous builds..." -ForegroundColor Yellow
@@ -26,4 +26,4 @@ Write-Host "[INFO] Package location: $zipFile" -ForegroundColor Cyan
 
 # Restore dev environment files for local work
 Write-Host "[*] Restoring development configuration..." -ForegroundColor Yellow
-dotnet run --project "..\NotePadAI.ProjectSetup\NotePadAI.ProjectSetup.csproj" -- --env dev --client-root "."
+dotnet run --project "..\NotebookAI.ProjectSetup\NotebookAI.ProjectSetup.csproj" -- --env dev --client-root "."

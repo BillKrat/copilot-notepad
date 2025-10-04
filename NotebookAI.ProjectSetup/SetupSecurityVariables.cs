@@ -1,6 +1,6 @@
 
 
-namespace NotePadAI.ProjectSetup
+namespace NotebookAI.ProjectSetup
 {	internal class SetupSecurityVariables
 	{
 	}
