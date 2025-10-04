@@ -22,6 +22,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NotebookAI.Ftp", "NotebookA
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NotebookAI.ProjectSetup", "NotebookAI.ProjectSetup\NotebookAI.ProjectSetup.csproj", "{0DF8C99F-2253-CF77-C5A3-7298B552A664}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Adventures.Shared", "Adventures.Shared\Adventures.Shared.csproj", "{F3FFE583-3454-4D2A-A323-D70CF71A17D2}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -52,6 +54,10 @@ Global
 		{0DF8C99F-2253-CF77-C5A3-7298B552A664}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{0DF8C99F-2253-CF77-C5A3-7298B552A664}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{0DF8C99F-2253-CF77-C5A3-7298B552A664}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F3FFE583-3454-4D2A-A323-D70CF71A17D2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F3FFE583-3454-4D2A-A323-D70CF71A17D2}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F3FFE583-3454-4D2A-A323-D70CF71A17D2}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F3FFE583-3454-4D2A-A323-D70CF71A17D2}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

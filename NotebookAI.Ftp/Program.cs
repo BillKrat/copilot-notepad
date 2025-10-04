@@ -1,88 +1,338 @@
 ﻿using System.Net;
 using System.Text.RegularExpressions;
+using Adventures.Shared.Ftp.Interfaces;
+using Adventures.Shared.Ftp.Extensions;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
+using FluentFTP;
 
 namespace NotebookAI.Ftp
 {
     internal class Program
     {
-        private record FtpSettings(string Host, int Port, string Username, string Password, string RemoteFolder);
+        private record FtpSettings(string RemoteFolder);
 
-        static int Main(string[] args)
+        public static async Task<int> Main(string[] args)
         {
+            using var cts = new CancellationTokenSource();
+            Console.CancelKeyPress += (_, e) => { e.Cancel = true; cts.Cancel(); };
+            var token = cts.Token;
+
             try
             {
+                var host = Host.CreateDefaultBuilder(args)
+                    .ConfigureAppConfiguration((ctx, cfg) =>
+                    {
+                        cfg.AddUserSecrets<Program>(optional: true);
+                    })
+                    .ConfigureServices((ctx, services) =>
+                    {
+                        services.AddFtp(ctx.Configuration, "Ftp", ServiceLifetime.Scoped); // Scoped with pooling
+                    })
+                    .ConfigureLogging(lb => lb.AddConsole())
+                    .Build();
+
                 var sourcePath = args?.Length > 0 && !string.IsNullOrWhiteSpace(args[0])
                     ? args[0]
                     : FindDefaultSourcePath();
 
-                var ftp = GetFtpSettings();
-                var baseDir = NormalizeBase(ftp.RemoteFolder);
+                var config = host.Services.GetRequiredService<IConfiguration>();
+                var remoteSettings = GetFtpSettings(config);
+                var baseDir = NormalizeBase(remoteSettings.RemoteFolder);
+                var slot1 = CombineRemote(baseDir, "slot1"); // staging
+                var slot2 = CombineRemote(baseDir, "slot2"); // backup
 
-                Console.WriteLine($"[INFO] Deploying from '{sourcePath}' to ftp://{ftp.Host}:{ftp.Port}{baseDir} ...");
+                using var scope = host.Services.CreateScope();
+                var ftp = scope.ServiceProvider.GetRequiredService<IFtpClientAsync>();
+                var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
 
-                // Ensure base directory exists
-                EnsureDirectoryExists(ftp, baseDir);
+                await ftp.ConnectAsync(token);
 
-                var slot1 = CombineRemote(baseDir, "slot1");
-                var slot2 = CombineRemote(baseDir, "slot2");
+                logger.LogInformation("Deploying from '{Source}' to '{Base}' (staging: {Staging}, backup: {Backup})", sourcePath, baseDir, slot1, slot2);
 
-                // Ensure slot directories are present and empty
-                EnsureDirectoryExists(ftp, slot1);
-                CleanDirectory(ftp, slot1);
+                // Ensure base + slots exist
+                await EnsureDirAsync(ftp, baseDir, token);
+                await EnsureDirAsync(ftp, slot1, token);
+                await EnsureDirAsync(ftp, slot2, token);
 
-                EnsureDirectoryExists(ftp, slot2);
-                CleanDirectory(ftp, slot2);
+                // Clean staging slot only
+                await SafeCleanDirectoryAsync(ftp, slot1, token);
 
-                // Upload dist to slot1
-                UploadDirectoryRecursive(ftp, sourcePath, slot1);
+                // Upload to staging with progress
+                int parallelism = GetParallelism(config);
+                logger.LogInformation("Uploading to staging with parallelism={Parallelism} ...", parallelism);
+                var uploadProgress = new Progress<FtpProgress>(p =>
+                {
+                    if (p.Progress >= 0)
+                    {
+                        logger.LogInformation("UPLOAD {Percent,6:F2}% {Local}", p.Progress, p.LocalPath);
+                    }
+                });
+                // Using directory upload (FluentFTP internally parallelizes). For explicit parallel control we could enumerate files & use UploadFilesAsync.
+                await ftp.UploadDirectoryAsync(sourcePath, slot1, progress: uploadProgress, token: token);
 
-                // Move existing baseDir content to slot2
-                MoveContentsTo(ftp, baseDir, slot2, exclude: new[] { "slot1", "slot2" });
+                // Validate staging
+                var stagingItems = await ftp.ListAsync(slot1, token);
+                if (!stagingItems.Any(i => i.Type == FtpObjectType.File))
+                    throw new InvalidOperationException("Staging upload validation failed: no files found.");
+                logger.LogInformation("Staging upload validated: {Count} items", stagingItems.Count());
 
-                // Move from slot1 to baseDir (finalize)
-                MoveDirectoryContents(ftp, slot1, baseDir);
+                // Backup current production
+                logger.LogInformation("Backing up current production to backup slot...");
+                await BackupCurrentAsync(ftp, baseDir, slot1, slot2, token, logger);
 
-                Console.WriteLine("[SUCCESS] Deployment completed.");
+                // Promote staging
+                logger.LogInformation("Promoting staging content to production...");
+                await PromoteStagingAsync(ftp, slot1, baseDir, token, logger);
+
+                // Post-deploy health checks
+                logger.LogInformation("Running post-deployment health checks...");
+                var healthOk = await RunHealthChecksAsync(ftp, baseDir, config, token, logger);
+                if (!healthOk)
+                {
+                    logger.LogError("Health checks FAILED. Initiating rollback.");
+                    await RollbackFromBackupAsync(ftp, baseDir, slot1, slot2, token, logger);
+                    logger.LogError("Rollback completed. Deployment marked as failed.");
+                    return 1;
+                }
+
+                logger.LogInformation("Health checks passed.");
+
+                // Clean staging only after success
+                await SafeCleanDirectoryAsync(ftp, slot1, token);
+
+                logger.LogInformation("Deployment succeeded.");
                 return 0;
+            }
+            catch (OperationCanceledException)
+            {
+                Console.Error.WriteLine("[CANCELLED] Deployment cancelled by user.");
+                return 2;
             }
             catch (Exception ex)
             {
-                Console.Error.WriteLine("[ERROR] " + ex.Message);
+                Console.Error.WriteLine("[ERROR] Deployment failed: " + ex.Message);
                 Console.Error.WriteLine(ex.ToString());
                 return 1;
             }
         }
 
-        private static FtpSettings GetFtpSettings()
+        private static int GetParallelism(IConfiguration config)
         {
-            var config = new ConfigurationBuilder()
-                .AddUserSecrets(typeof(Program).Assembly, optional: false)
-                .Build();
+            var value = config["Deployment:Parallelism"];
+            if (int.TryParse(value, out var p) && p > 0 && p <= 64) return p;
+            return 4;
+        }
 
-            var section = config.GetSection("Ftp");
-            var host = section["host"] ?? throw new InvalidOperationException("User secrets missing: Ftp:host");
-            var portStr = section["port"] ?? "21";
-            var user = section["username"] ?? throw new InvalidOperationException("User secrets missing: Ftp:username");
-            var pass = section["password"] ?? throw new InvalidOperationException("User secrets missing: Ftp:password");
-            var remoteFolder = section["remote-folder"] ?? "/";
-            if (!int.TryParse(portStr, out var port)) port = 21;
-            return new FtpSettings(host, port, user, pass, remoteFolder);
+        private static async Task EnsureDirAsync(IFtpClientAsync ftp, string path, CancellationToken token)
+        {
+            if (!await ftp.DirectoryExistsAsync(path, token))
+            {
+                await ftp.CreateDirectoryAsync(path, token);
+            }
+        }
+
+        private static async Task BackupCurrentAsync(IFtpClientAsync ftp, string baseDir, string stagingSlot, string backupSlot, CancellationToken token, ILogger logger)
+        {
+            await SafeCleanDirectoryAsync(ftp, backupSlot, token);
+
+            var items = await ftp.ListAsync(baseDir, token);
+            var movedRecords = new List<(string From, string To, bool Dir)>();
+
+            foreach (var item in items)
+            {
+                if (IsSlot(item, stagingSlot) || IsSlot(item, backupSlot)) continue;
+                var source = item.FullName;
+                var dest = CombineRemote(backupSlot, TrimBase(baseDir, item.FullName));
+                try
+                {
+                    if (item.Type == FtpObjectType.Directory)
+                    {
+                        await ftp.MoveDirectoryAsync(source, dest, token);
+                        movedRecords.Add((source, dest, true));
+                        logger.LogDebug("Backed up directory {Source} -> {Dest}", source, dest);
+                    }
+                    else if (item.Type == FtpObjectType.File)
+                    {
+                        await ftp.MoveFileAsync(source, dest, token);
+                        movedRecords.Add((source, dest, false));
+                        logger.LogDebug("Backed up file {Source} -> {Dest}", source, dest);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    logger.LogError(ex, "Error backing up {Source} -> {Dest}; rolling back partial backup", source, dest);
+                    await RollbackMovesAsync(ftp, movedRecords, token, logger);
+                    throw;
+                }
+            }
+        }
+
+        private static async Task PromoteStagingAsync(IFtpClientAsync ftp, string stagingSlot, string baseDir, CancellationToken token, ILogger logger)
+        {
+            var items = await ftp.ListAsync(stagingSlot, token);
+            var movedIn = new List<(string From, string To, bool Dir)>();
+
+            foreach (var item in items)
+            {
+                var source = item.FullName;
+                var dest = CombineRemote(baseDir, TrimBase(stagingSlot, item.FullName));
+                try
+                {
+                    if (item.Type == FtpObjectType.Directory)
+                    {
+                        await ftp.MoveDirectoryAsync(source, dest, token);
+                        movedIn.Add((source, dest, true));
+                        logger.LogDebug("Promoted directory {Source} -> {Dest}", source, dest);
+                    }
+                    else if (item.Type == FtpObjectType.File)
+                    {
+                        await ftp.MoveFileAsync(source, dest, token);
+                        movedIn.Add((source, dest, false));
+                        logger.LogDebug("Promoted file {Source} -> {Dest}", source, dest);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    logger.LogError(ex, "Error promoting {Source} -> {Dest}; attempting rollback to staging", source, dest);
+                    foreach (var m in movedIn.AsEnumerable().Reverse())
+                    {
+                        try
+                        {
+                            if (m.Dir) await ftp.MoveDirectoryAsync(m.To, m.From, token);
+                            else await ftp.MoveFileAsync(m.To, m.From, token);
+                        }
+                        catch { }
+                    }
+                    throw;
+                }
+            }
+        }
+
+        private static async Task RollbackMovesAsync(IFtpClientAsync ftp, List<(string From, string To, bool Dir)> moved, CancellationToken token, ILogger logger)
+        {
+            foreach (var entry in moved.AsEnumerable().Reverse())
+            {
+                try
+                {
+                    if (entry.Dir) await ftp.MoveDirectoryAsync(entry.To, entry.From, token);
+                    else await ftp.MoveFileAsync(entry.To, entry.From, token);
+                    logger.LogDebug("Rollback move {To} -> {From}", entry.To, entry.From);
+                }
+                catch { }
+            }
+        }
+
+        private static async Task<bool> RunHealthChecksAsync(IFtpClientAsync ftp, string baseDir, IConfiguration config, CancellationToken token, ILogger logger)
+        {
+            // Configurable required file list (relative to base)
+            var required = config.GetSection("Deployment:HealthCheck:Paths").Get<string[]>() ?? Array.Empty<string>();
+            if (required.Length == 0)
+            {
+                // Default heuristic: ensure index.html exists if typical SPA
+                required = new[] { "index.html" };
+            }
+
+            foreach (var rel in required)
+            {
+                var remote = CombineRemote(baseDir, rel);
+                var exists = await ftp.FileExistsAsync(remote, token);
+                logger.LogInformation("HealthCheck: {Path} exists={Exists}", remote, exists);
+                if (!exists) return false;
+            }
+            return true;
+        }
+
+        private static async Task RollbackFromBackupAsync(IFtpClientAsync ftp, string baseDir, string stagingSlot, string backupSlot, CancellationToken token, ILogger logger)
+        {
+            logger.LogInformation("Starting rollback: restoring backup slot to production.");
+            // Move current (failed) production content to staging (clean staging first)
+            await SafeCleanDirectoryAsync(ftp, stagingSlot, token);
+            var prodItems = await ftp.ListAsync(baseDir, token);
+            foreach (var item in prodItems)
+            {
+                if (IsSlot(item, stagingSlot) || IsSlot(item, backupSlot)) continue;
+                var source = item.FullName;
+                var dest = CombineRemote(stagingSlot, TrimBase(baseDir, item.FullName));
+                try
+                {
+                    if (item.Type == FtpObjectType.Directory) await ftp.MoveDirectoryAsync(source, dest, token);
+                    else if (item.Type == FtpObjectType.File) await ftp.MoveFileAsync(source, dest, token);
+                }
+                catch (Exception ex)
+                {
+                    logger.LogWarning(ex, "Failed moving failed deployment item {Source} -> {Dest}", source, dest);
+                }
+            }
+            // Move backup back to base
+            var backupItems = await ftp.ListAsync(backupSlot, token);
+            foreach (var item in backupItems)
+            {
+                var source = item.FullName;
+                var dest = CombineRemote(baseDir, TrimBase(backupSlot, item.FullName));
+                try
+                {
+                    if (item.Type == FtpObjectType.Directory) await ftp.MoveDirectoryAsync(source, dest, token);
+                    else if (item.Type == FtpObjectType.File) await ftp.MoveFileAsync(source, dest, token);
+                }
+                catch (Exception ex)
+                {
+                    logger.LogError(ex, "Failed restoring backup item {Source} -> {Dest}", source, dest);
+                }
+            }
+            logger.LogInformation("Rollback restore complete.");
+        }
+
+        private static bool IsSlot(FtpListItem item, string slotPath) => item.FullName.Equals(slotPath, StringComparison.OrdinalIgnoreCase);
+
+        private static string TrimBase(string baseDir, string fullPath)
+        {
+            if (fullPath.StartsWith(baseDir, StringComparison.OrdinalIgnoreCase))
+            {
+                var trimmed = fullPath.Substring(baseDir.Length).Trim('/');
+                return trimmed;
+            }
+            return fullPath.Trim('/');
+        }
+
+        private static async Task SafeCleanDirectoryAsync(IFtpClientAsync ftp, string path, CancellationToken token)
+        {
+            if (!await ftp.DirectoryExistsAsync(path, token))
+            {
+                await ftp.CreateDirectoryAsync(path, token);
+                return;
+            }
+            await ftp.DeleteDirectoryAsync(path, recursive: true, token);
+            await ftp.CreateDirectoryAsync(path, token);
+        }
+
+        private static FtpSettings GetFtpSettings(IConfiguration configuration)
+        {
+            var section = configuration.GetSection("Ftp");
+            var remoteFolder = section["remote-folder"] ?? section["RemoteFolder"] ?? "/";
+            return new FtpSettings(remoteFolder);
         }
 
         private static string NormalizeBase(string? path)
         {
             var p = string.IsNullOrWhiteSpace(path) ? "/" : path!.Trim();
-            // allow either "/global" or "global" in settings
             if (!p.StartsWith('/')) p = "/" + p;
-            // remove trailing slash (except root)
             if (p.Length > 1) p = p.TrimEnd('/');
             return p;
         }
 
+        private static string CombineRemote(params string[] parts)
+        {
+            var combined = string.Join('/', parts.Select(p => p.Trim('/')));
+            if (!combined.StartsWith('/')) combined = "/" + combined;
+            return combined.Replace("//", "/");
+        }
+
         private static string FindDefaultSourcePath()
         {
-            var candidates = new []
+            var candidates = new[]
             {
                 Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "notebookai.client", "dist", "notebookai.client"),
                 Path.Combine(Environment.CurrentDirectory, "..", "notebookai.client", "dist", "notebookai.client"),
@@ -95,320 +345,6 @@ namespace NotebookAI.Ftp
                 if (Directory.Exists(full)) return full;
             }
             throw new DirectoryNotFoundException("Could not find build output folder 'dist\\notebookai.client'. Pass the path as the first argument.");
-        }
-
-        private static string CombineRemote(params string[] parts)
-        {
-            var combined = string.Join('/', parts.Select(p => p.Trim('/')));
-            if (!combined.StartsWith('/')) combined = "/" + combined;
-            return combined.Replace("//", "/");
-        }
-
-        private static FtpWebRequest CreateRequest(FtpSettings ftp, string method, string remotePath)
-        {
-            var uriBuilder = new UriBuilder("ftp", ftp.Host, ftp.Port, remotePath);
-            var request = (FtpWebRequest)WebRequest.Create(uriBuilder.Uri);
-            request.Method = method;
-            request.Credentials = new NetworkCredential(ftp.Username, ftp.Password);
-            request.EnableSsl = false; // change if FTPS is required
-            request.UseBinary = true;
-            request.KeepAlive = false;
-            request.ReadWriteTimeout = 30000;
-            request.Timeout = 30000;
-            return request;
-        }
-
-        private static bool DirectoryExists(FtpSettings ftp, string remotePath)
-        {
-            try
-            {
-                var req = CreateRequest(ftp, WebRequestMethods.Ftp.ListDirectory, remotePath);
-                using var resp = (FtpWebResponse)req.GetResponse();
-                return true;
-            }
-            catch (WebException ex)
-            {
-                if (ex.Response is FtpWebResponse ftpResp &&
-                    (ftpResp.StatusCode == FtpStatusCode.ActionNotTakenFileUnavailable ||
-                     ftpResp.StatusCode == FtpStatusCode.ActionNotTakenFileUnavailableOrBusy))
-                {
-                    return false;
-                }
-                return false;
-            }
-        }
-
-        private static void EnsureDirectoryExists(FtpSettings ftp, string remotePath)
-        {
-            if (DirectoryExists(ftp, remotePath)) return;
-            var req = CreateRequest(ftp, WebRequestMethods.Ftp.MakeDirectory, remotePath);
-            using var resp = (FtpWebResponse)req.GetResponse();
-        }
-
-        private static IEnumerable<(string Name, string FullPath, bool IsDirectory)> ListDirectoryDetails(FtpSettings ftp, string remotePath)
-        {
-            var req = CreateRequest(ftp, WebRequestMethods.Ftp.ListDirectoryDetails, remotePath);
-            using var resp = (FtpWebResponse)req.GetResponse();
-            using var stream = resp.GetResponseStream()!;
-            using var reader = new StreamReader(stream);
-            var lines = new List<string>();
-            while (!reader.EndOfStream)
-            {
-                lines.Add(reader.ReadLine()!);
-            }
-
-            foreach (var line in lines)
-            {
-                if (string.IsNullOrWhiteSpace(line)) continue;
-
-                // Try Windows/IIS format first: 06-16-24  03:25PM       <DIR>  wwwroot OR 06-16-24  03:25PM            123 file.txt
-                var winMatch = Regex.Match(line, @"^(?<date>\d{2}-\d{2}-\d{2,4})\s+(?<time>\d{2}:\d{2}(AM|PM))\s+(?<dir><DIR>|\d+)\s+(?<name>.+)$");
-                if (winMatch.Success)
-                {
-                    var name = winMatch.Groups["name"].Value.Trim();
-                    var isDir = string.Equals(winMatch.Groups["dir"].Value, "<DIR>", StringComparison.OrdinalIgnoreCase);
-                    var full = CombineRemote(remotePath, name);
-                    yield return (name, full, isDir);
-                    continue;
-                }
-
-                // Fallback to Unix format: drwxr-xr-x 1 owner group 0 Jan 01 00:00 dirname
-                var parts = line.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
-                if (parts.Length >= 9)
-                {
-                    bool isDir = parts[0][0] == 'd';
-                    var name = string.Join(' ', parts.Skip(8));
-                    var full = CombineRemote(remotePath, name);
-                    yield return (name, full, isDir);
-                    continue;
-                }
-            }
-        }
-
-        private static void DeleteFile(FtpSettings ftp, string remotePath)
-        {
-            var req = CreateRequest(ftp, WebRequestMethods.Ftp.DeleteFile, remotePath);
-            using var resp = (FtpWebResponse)req.GetResponse();
-        }
-
-        private static void DeleteDirectoryRecursive(FtpSettings ftp, string remotePath)
-        {
-            foreach (var item in SafeList(ftp, remotePath))
-            {
-                if (item.IsDirectory)
-                {
-                    DeleteDirectoryRecursive(ftp, item.FullPath);
-                }
-                else
-                {
-                    Try(() => DeleteFile(ftp, item.FullPath));
-                }
-            }
-            var req = CreateRequest(ftp, WebRequestMethods.Ftp.RemoveDirectory, remotePath);
-            using var resp = (FtpWebResponse)req.GetResponse();
-        }
-
-        private static IEnumerable<(string Name, string FullPath, bool IsDirectory)> SafeList(FtpSettings ftp, string remotePath)
-        {
-            try { return ListDirectoryDetails(ftp, remotePath).ToArray(); }
-            catch { return Array.Empty<(string, string, bool)>(); }
-        }
-
-        private static void CleanDirectory(FtpSettings ftp, string remotePath)
-        {
-            foreach (var item in SafeList(ftp, remotePath))
-            {
-                try
-                {
-                    if (item.IsDirectory)
-                    {
-                        DeleteDirectoryRecursive(ftp, item.FullPath);
-                    }
-                    else
-                    {
-                        DeleteFile(ftp, item.FullPath);
-                    }
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"[WARN] Failed to delete '{item.FullPath}': {ex.Message}");
-                }
-            }
-        }
-
-        private static void EnsureRemoteDirectoryTree(FtpSettings ftp, string remoteDir)
-        {
-            var parts = remoteDir.Split('/', StringSplitOptions.RemoveEmptyEntries);
-            var path = "/";
-            foreach (var part in parts)
-            {
-                path = CombineRemote(path, part);
-                if (!DirectoryExists(ftp, path))
-                {
-                    Try(() => EnsureDirectoryExists(ftp, path));
-                }
-            }
-        }
-
-        private static void UploadFile(FtpSettings ftp, string localFile, string remoteFile)
-        {
-            EnsureRemoteDirectoryTree(ftp, Path.GetDirectoryName(remoteFile)?.Replace('\\', '/') ?? "/");
-            var req = CreateRequest(ftp, WebRequestMethods.Ftp.UploadFile, remoteFile);
-            using var reqStream = req.GetRequestStream();
-            using var fs = new FileStream(localFile, FileMode.Open, FileAccess.Read, FileShare.Read);
-            fs.CopyTo(reqStream);
-            using var resp = (FtpWebResponse)req.GetResponse();
-        }
-
-        private static void UploadBytes(FtpSettings ftp, byte[] bytes, string remoteFile)
-        {
-            EnsureRemoteDirectoryTree(ftp, Path.GetDirectoryName(remoteFile)?.Replace('\\', '/') ?? "/");
-            var req = CreateRequest(ftp, WebRequestMethods.Ftp.UploadFile, remoteFile);
-            using var reqStream = req.GetRequestStream();
-            reqStream.Write(bytes, 0, bytes.Length);
-            using var resp = (FtpWebResponse)req.GetResponse();
-        }
-
-        private static byte[] DownloadBytes(FtpSettings ftp, string remoteFile)
-        {
-            var req = CreateRequest(ftp, WebRequestMethods.Ftp.DownloadFile, remoteFile);
-            using var resp = (FtpWebResponse)req.GetResponse();
-            using var stream = resp.GetResponseStream()!;
-            using var ms = new MemoryStream();
-            stream.CopyTo(ms);
-            return ms.ToArray();
-        }
-
-        private static void CopyFile(FtpSettings ftp, string sourceFile, string destFile)
-        {
-            var bytes = DownloadBytes(ftp, sourceFile);
-            UploadBytes(ftp, bytes, destFile);
-        }
-
-        private static void CopyDirectoryRecursive(FtpSettings ftp, string sourceDir, string destDir)
-        {
-            EnsureRemoteDirectoryTree(ftp, destDir);
-            foreach (var item in SafeList(ftp, sourceDir))
-            {
-                var destPath = CombineRemote(destDir, item.Name);
-                if (item.IsDirectory)
-                {
-                    CopyDirectoryRecursive(ftp, item.FullPath, destPath);
-                }
-                else
-                {
-                    CopyFile(ftp, item.FullPath, destPath);
-                }
-            }
-        }
-
-        private static void UploadDirectoryRecursive(FtpSettings ftp, string localDir, string remoteDir)
-        {
-            foreach (var dir in Directory.GetDirectories(localDir, "*", SearchOption.AllDirectories))
-            {
-                var rel = Path.GetRelativePath(localDir, dir).Replace('\\', '/');
-                EnsureRemoteDirectoryTree(ftp, CombineRemote(remoteDir, rel));
-            }
-            foreach (var file in Directory.GetFiles(localDir, "*", SearchOption.AllDirectories))
-            {
-                var rel = Path.GetRelativePath(localDir, file).Replace('\\', '/');
-                var remoteFile = CombineRemote(remoteDir, rel);
-                Console.WriteLine($"[INFO] Uploading {rel}");
-                Try(() => UploadFile(ftp, file, remoteFile));
-            }
-        }
-
-        private static void Rename(FtpSettings ftp, string from, string to)
-        {
-            var req = CreateRequest(ftp, WebRequestMethods.Ftp.Rename, from);
-            req.RenameTo = to;
-            using var resp = (FtpWebResponse)req.GetResponse();
-        }
-
-        private static void MoveWithFallback(FtpSettings ftp, string sourcePath, string destPath, bool isDirectory)
-        {
-            try
-            {
-                Rename(ftp, sourcePath, destPath);
-            }
-            catch
-            {
-                // Fallback: copy then delete
-                if (isDirectory)
-                {
-                    CopyDirectoryRecursive(ftp, sourcePath, destPath);
-                    Try(() => DeleteDirectoryRecursive(ftp, sourcePath));
-                }
-                else
-                {
-                    CopyFile(ftp, sourcePath, destPath);
-                    Try(() => DeleteFile(ftp, sourcePath));
-                }
-            }
-        }
-
-        private static void MoveContentsTo(FtpSettings ftp, string sourceDir, string targetDir, IEnumerable<string>? exclude = null)
-        {
-            exclude ??= Array.Empty<string>();
-            var excludeSet = new HashSet<string>(exclude, StringComparer.OrdinalIgnoreCase);
-
-            foreach (var item in SafeList(ftp, sourceDir))
-            {
-                var name = item.Name.Trim('/');
-                if (string.IsNullOrWhiteSpace(name)) continue;
-                if (excludeSet.Contains(name)) continue;
-
-                var sourcePath = item.FullPath;
-                var destPath = CombineRemote(targetDir, name);
-
-                try
-                {
-                    if (item.IsDirectory)
-                    {
-                        EnsureDirectoryExists(ftp, destPath);
-                    }
-                    MoveWithFallback(ftp, sourcePath, destPath, item.IsDirectory);
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"[WARN] Failed to move '{sourcePath}' -> '{destPath}': {ex.Message}");
-                }
-            }
-            Console.WriteLine($"[INFO] Moved contents from {sourceDir} to {targetDir}");
-        }
-
-        private static void MoveDirectoryContents(FtpSettings ftp, string sourceDir, string targetDir)
-        {
-            foreach (var item in SafeList(ftp, sourceDir))
-            {
-                var name = item.Name.Trim('/');
-                if (string.IsNullOrWhiteSpace(name)) continue;
-
-                var sourcePath = item.FullPath;
-                var destPath = CombineRemote(targetDir, name);
-
-                try
-                {
-                    if (item.IsDirectory)
-                    {
-                        EnsureDirectoryExists(ftp, destPath);
-                    }
-                    MoveWithFallback(ftp, sourcePath, destPath, item.IsDirectory);
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"[WARN] Failed to move '{sourcePath}' -> '{destPath}': {ex.Message}");
-                }
-            }
-        }
-
-        private static void Try(Action action)
-        {
-            try { action(); }
-            catch (Exception ex)
-            {
-                Console.WriteLine("[WARN] " + ex.Message);
-            }
         }
     }
 }
