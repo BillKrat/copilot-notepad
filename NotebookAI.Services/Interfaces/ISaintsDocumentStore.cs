@@ -1,6 +1,6 @@
 using Microsoft.SemanticKernel;
 
-namespace NotebookAI.Server.Services;
+namespace NotebookAI.Services.Interfaces;
 
 public interface ISaintsDocumentStore
 {

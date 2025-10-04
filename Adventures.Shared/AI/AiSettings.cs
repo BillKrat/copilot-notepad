@@ -1,4 +1,4 @@
-namespace NotebookAI.Server.Settings;
+namespace Adventures.Shared.AI;
 
 public sealed class AiSettings
 {

@@ -1,11 +1,12 @@
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.ChatCompletion;
 using Microsoft.SemanticKernel.Embeddings;
+using NotebookAI.Services.Interfaces;
 using System.Collections.Concurrent;
 using System.Numerics;
 using System.Text;
 
-namespace NotebookAI.Server.Services;
+namespace NotebookAI.Services.Models;
 
 public sealed class SaintsRagService
 {

@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using NotebookAI.Server.Services;
+using NotebookAI.Services.Interfaces;
+using NotebookAI.Services.Models;
 
 namespace NotebookAI.Server.Controllers;
 

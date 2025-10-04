@@ -1,4 +1,6 @@
-namespace NotebookAI.Server.Services;
+using NotebookAI.Services.Interfaces;
+
+namespace NotebookAI.Services.Stores;
 
 public sealed class InMemorySaintsDocumentStore : ISaintsDocumentStore
 {
