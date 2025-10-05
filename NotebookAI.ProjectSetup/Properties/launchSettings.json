@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "NotebookAI.ProjectSetup": {
+      "commandName": "Project",
+      "commandLineArgs": "-- --env prod --client-root "
+    }
+  }
+}

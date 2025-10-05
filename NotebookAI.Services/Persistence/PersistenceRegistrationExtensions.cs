@@ -29,14 +29,14 @@ public static class PersistenceRegistrationExtensions
         if (string.IsNullOrWhiteSpace(cs))
         {
             // Reasonable Sqlite default (file in content root)
-            cs = "Data Source=notebook.db";
+            cs = "Data Source=NotepadtripleStore.db";
         }
 
         services.AddPooledDbContextFactory<NotebookDbContext>((sp, options) =>
         {
             if (provider.Equals("SqlServer", StringComparison.OrdinalIgnoreCase))
             {
-                options.UseSqlServer(cs); //, o => o.MigrationsAssembly(typeof(NotebookDbContext).Assembly.FullName));
+                options.UseSqlServer(cs, o => o.MigrationsAssembly(typeof(NotebookDbContext).Assembly.FullName));
             }
             else
             {
@@ -45,7 +45,7 @@ public static class PersistenceRegistrationExtensions
                 var fileMode = builder.DataSource != ":memory:";
                 var name = typeof(NotebookDbContext).Assembly.FullName;
 
-                options.UseSqlite(cs); //, o => o.MigrationsAssembly(typeof(NotebookDbContext).Assembly.FullName));
+                options.UseSqlite(cs, o => o.MigrationsAssembly(typeof(NotebookDbContext).Assembly.FullName));
                 if (fileMode)
                 {
                     options.UseQueryTrackingBehavior(QueryTrackingBehavior.NoTracking);

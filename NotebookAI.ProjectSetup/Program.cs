@@ -3,8 +3,10 @@ using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
 
+internal record ProviderConfig(string Name, string Provider, string? ConnectionString, string? Mode, bool? CacheEnabled, int? CacheTtlSeconds);
 internal record Auth0Config(string Domain, string ClientId, string Audience);
-internal record EnvConfig(bool Production, bool UseProxy, string ApiUrl, string? ClientUrl, Auth0Config Auth0);
+internal record EnvConfig(bool Production, bool UseProxy, string ApiUrl, string? ClientUrl, string? SiteUrl, Auth0Config Auth0, List<ProviderConfig> providers);
+
 internal record Auth0ManagementConfig(string Domain, string ClientId, string ClientSecret, string TargetClientId);
 
 internal static class Program
@@ -18,6 +20,7 @@ internal static class Program
 
             var devCfg = BindEnv(config, "Dev");
             var prodCfg = BindEnv(config, "Prod");
+
             Validate(devCfg, "Dev");
             Validate(prodCfg, "Prod");
 
@@ -30,6 +33,7 @@ internal static class Program
                 Console.WriteLine($"[INFO] Server root: {serverRoot}");
                 Console.WriteLine($"[INFO] Selected env: {env}");
                 Console.WriteLine($"[INFO] Auth0 Management configured: {(mgmt is null ? "no" : "yes")}");
+                Console.WriteLine($"[INFO] Site URL: {devCfg.SiteUrl ?? prodCfg.SiteUrl ?? "(none)"}");
             }
 
             // Resolve paths
@@ -134,12 +138,27 @@ internal static class Program
             section.GetValue<string>("auth0:audience") ?? section.GetValue<string>("auth0:Audience") ?? ""
         );
 
+        var providers = new List<ProviderConfig>();
+        foreach (var provider in new[] { "Persistence", "TripleStore", "BookConfig" })
+        {
+            var sectionKey = $"{provider}";
+
+            providers.Add(new ProviderConfig(provider,
+                section.GetValue<string>($"{sectionKey}:provider") ?? "Sqlite",
+                section.GetValue<string?>($"{sectionKey}:connectionString"),
+                section.GetValue<string?>($"{sectionKey}:mode"),
+                section.GetValue<bool?>($"{sectionKey}:cache:Enabled"),
+                section.GetValue<int?>($"{sectionKey}:cache:TtlSeconds")
+              ));
+        }
+
         var production = section.GetValue("production", false);
         var useProxy = section.GetValue("useProxy", false);
         var apiUrl = section.GetValue<string>("apiUrl") ?? "";
         var clientUrl = section.GetValue<string>("clientUrl");
+        var siteUrl = cfg.GetValue<string>("Ftp:site-url"); // global site-url
 
-        return new EnvConfig(production, useProxy, apiUrl, clientUrl, auth0);
+        return new EnvConfig(production, useProxy, apiUrl, clientUrl, siteUrl, auth0, providers);
     }
 
     private static Auth0ManagementConfig? BindAuth0Management(IConfiguration cfg)
@@ -179,6 +198,7 @@ internal static class Program
         var sb = new StringBuilder();
         sb.AppendLine($"# {environmentName.ToUpperInvariant()} SETTINGS");
         sb.AppendLine($"API_URL={cfg.ApiUrl}");
+        if (!string.IsNullOrWhiteSpace(cfg.SiteUrl)) sb.AppendLine($"SITE_URL={cfg.SiteUrl}");
         sb.AppendLine($"USE_PROXY={cfg.UseProxy.ToString().ToLowerInvariant()}");
         sb.AppendLine($"DEBUG_MODE={(cfg.Production ? "false" : "true")}");
         sb.AppendLine($"ENVIRONMENT={environmentName}");
@@ -198,6 +218,7 @@ $@"export const environment = {{
   production: {cfg.Production.ToString().ToLowerInvariant()},
   useProxy: {cfg.UseProxy.ToString().ToLowerInvariant()},
   apiUrl: '{cfg.ApiUrl}',
+  siteUrl: '{cfg.SiteUrl ?? cfg.ApiUrl}',
   auth0: {{
     domain: '{cfg.Auth0.Domain}',
     clientId: '{cfg.Auth0.ClientId}',
@@ -264,6 +285,38 @@ $@"export const environment = {{
                 ["Audience"] = prod.Auth0.Audience
             }
         };
+
+        foreach (var p in dev.providers)
+        {
+            var dict = new Dictionary<string, object?>();
+            if (!string.IsNullOrWhiteSpace(p.Provider)) dict["Provider"] = p.Provider;
+            if (!string.IsNullOrWhiteSpace(p.ConnectionString)) dict["ConnectionString"] = p.ConnectionString;
+            if (!string.IsNullOrWhiteSpace(p.Mode)) dict["Mode"] = p.Mode;
+            if (p.CacheEnabled.HasValue)
+                dict["Cache"] = new Dictionary<string, object?>
+                {
+                    ["Enabled"] = p.CacheEnabled.Value,
+                    ["TtlSeconds"] = p.CacheTtlSeconds ?? 300  // default TTL if not specified
+                };
+            devObj[p.Name] = dict;
+            MergeWriteJson(devPath, dict, verbose);
+        }
+
+        foreach (var p in prod.providers)
+        {
+            var dict = new Dictionary<string, object?>();
+            if (!string.IsNullOrWhiteSpace(p.Provider)) dict["Provider"] = p.Provider;
+            if (!string.IsNullOrWhiteSpace(p.ConnectionString)) dict["ConnectionString"] = p.ConnectionString;
+            if (!string.IsNullOrWhiteSpace(p.Mode)) dict["Mode"] = p.Mode;
+            if (p.CacheEnabled.HasValue)
+                dict["Cache"] = new Dictionary<string, object?>
+                {
+                    ["Enabled"] = p.CacheEnabled.Value,
+                    ["TtlSeconds"] = p.CacheTtlSeconds ?? 300  // default TTL if not specified
+                };
+            prodObj[p.Name] = dict;
+            MergeWriteJson(prodPath, dict, verbose);
+        }
 
         MergeWriteJson(devPath, devObj, verbose);
         MergeWriteJson(prodPath, prodObj, verbose);

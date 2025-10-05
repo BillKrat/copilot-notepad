@@ -54,3 +54,15 @@ if !ERRORLEVEL! neq 0 (
 )
 
 echo [SUCCESS] Ready for Web Deploy and FTP deployment complete!
+
+for /f "usebackq tokens=1,2 delims==" %%A in (".env") do (
+  if /I "%%A"=="SITE_URL" set SITE_URL=%%B
+)
+
+echo Active ENV: %CURR_ENV%  API_URL: %API_URL%  SITE_URL: %SITE_URL%
+if defined SITE_URL (
+  echo Launching %SITE_URL% ...
+  start "" "%SITE_URL%"
+) else (
+  echo SITE_URL not set. Skipping browser launch.
+)

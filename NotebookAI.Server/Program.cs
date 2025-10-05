@@ -12,6 +12,7 @@ using NotebookAI.Services.Persistence; // Added for persistence factory
 using NotebookAI.Triples.TripleStore; // triple store
 using NotebookAI.Triples.Config; // book config provider
 using NotebookAI.Triples.Files; // file store
+using Microsoft.EntityFrameworkCore; // added for EnsureCreated
 
 namespace NotebookAI.Server;
 
@@ -172,31 +173,3 @@ public class Program
     }
 }
 
-public sealed class TripleStoreSeeder : IHostedService
-{
-    private readonly IServiceProvider _sp;
-    private readonly ILogger<TripleStoreSeeder> _logger;
-
-    public TripleStoreSeeder(IServiceProvider sp, ILogger<TripleStoreSeeder> logger)
-    {
-        _sp = sp; _logger = logger;
-    }
-
-    public async Task StartAsync(CancellationToken cancellationToken)
-    {
-        using var scope = _sp.CreateScope();
-        var store = scope.ServiceProvider.GetRequiredService<ITripleStore>();
-        var count = await store.CountAsync(cancellationToken);
-        if (count == 0)
-        {
-            _logger.LogInformation("Seeding triple store ontology...");
-            foreach (var (s,p,o,d,dt) in NotebookAI.Triples.Ontology.BookOntologySeed.Triples)
-            {
-                await store.CreateAsync(s,p,o,d,dt,cancellationToken);
-            }
-            _logger.LogInformation("Triple store seeded with {Count} triples", await store.CountAsync(cancellationToken));
-        }
-    }
-
-    public Task StopAsync(CancellationToken cancellationToken) => Task.CompletedTask;
-}

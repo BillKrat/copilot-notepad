@@ -16,12 +16,12 @@ public static class TripleStoreRegistrationExtensions
         {
             if (provider.Equals("SqlServer", StringComparison.OrdinalIgnoreCase))
             {
-                opts.UseSqlServer(cs); //, b => b.MigrationsAssembly(typeof(TripleDbContext).Assembly.FullName));
+                opts.UseSqlServer(cs, b => b.MigrationsAssembly(typeof(TripleDbContext).Assembly.FullName));
             }
             else
             {
                 var name = typeof(TripleDbContext).Assembly.FullName;
-                opts.UseSqlite(cs); //, b => b.MigrationsAssembly(typeof(TripleDbContext).Assembly.FullName));
+                opts.UseSqlite(cs, b => b.MigrationsAssembly(typeof(TripleDbContext).Assembly.FullName));
             }
         });
 

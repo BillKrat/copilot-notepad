@@ -44,7 +44,8 @@ namespace NotebookAI.Ftp
                 var slot1 = CombineRemote(baseDir, "slot1"); // staging
                 var slot2 = CombineRemote(baseDir, "slot2"); // backup
 
-                using var scope = host.Services.CreateScope();
+                // IMPORTANT: use asynchronous scope disposal because pooled FTP client only implements IAsyncDisposable
+                await using var scope = host.Services.CreateAsyncScope();
                 var ftp = scope.ServiceProvider.GetRequiredService<IFtpClientAsync>();
                 var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
 

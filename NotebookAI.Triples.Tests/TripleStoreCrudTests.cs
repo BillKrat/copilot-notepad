@@ -15,7 +15,7 @@ public class TripleStoreCrudTests
     public void Setup()
     {
         var options = new DbContextOptionsBuilder<TripleDbContext>()
-            .UseSqlite("Data Source=C:\\Data\\github-repos\\copilot-ai\\NotebookAI.Data\\NotepadTripleStore.db") // "Data Source=:memory:")
+            .UseSqlite("Data Source=C:\\Data\\github-repos\\copilot-ai\\NotebookAI.Server\\NotepadTripleStore.db") // "Data Source=:memory:")
             .Options;
 
         // For in-memory sqlite we must open connection & ensure created
