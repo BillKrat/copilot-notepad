@@ -134,12 +134,15 @@ public class Program
         builder.Services.AddHostedService<TripleStoreSeeder>();
 
         // Document & RAG wiring
-        builder.Services.AddSingleton(typeof(IDocumentStore<>), typeof(InMemoryDocumentStore<>));
+        builder.Services.AddScoped<IDocumentStore<BookDocument>>(sp => sp.GetRequiredService<IBookDocumentStore>());
         builder.Services.AddSingleton<IChunker<BookDocument, BookChunk>, ParagraphChunker>();
-        builder.Services.AddSingleton<IVectorIndex, InMemoryVectorIndex>();
-        builder.Services.AddSingleton<IAdvancedRagService, HybridRagService>();
+        builder.Services.AddScoped<IRagService<BookDocument>, InMemoryRagService<BookDocument>>();
 
-        // Refactored AI kernel registration
+        // Vector index + advanced hybrid rag
+        builder.Services.AddSingleton<Adventures.Shared.Rag.IVectorIndex, Adventures.Shared.Rag.InMemoryVectorIndex>();
+        builder.Services.AddScoped<IAdvancedRagService, HybridRagService>();
+
+        // AI kernel
         builder.Services.AddAiKernel(builder.Configuration);
 
         var app = builder.Build();

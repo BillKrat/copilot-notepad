@@ -40,45 +40,45 @@ public sealed class HybridRagService : IAdvancedRagService
         await EnsureIndexedAsync(filtered, ct);
 
         // 2. Embed question
-        var qEmb = (await _embedder.GenerateAsync([query.Question], cancellationToken: ct))[0].Vector.ToArray();
+        var qEmb = (await _embedder.GenerateAsync([query.Question], cancellationToken: ct))[0].Vector;
 
-        // 3. Vector search across all chunk ids we stored
-        var allChunkIds = _chunkCache.Values.SelectMany(v => v.Chunks.Select(c => c.Id)).ToList();
-        var matches = new List<VectorMatch>();
-        foreach (var id in allChunkIds)
-        {
-            // This naive implementation iterates store; for real index use, index would handle search directly.
-            // Here we fetch stored vectors indirectly by recomputing when indexing occurred (simplified: skip)
-        }
-        // Since we don't keep vectors here (index does), do a single index search call per naive approach is not possible without storing vectors.
-        // Simplify: re-embed each chunk text (inefficient but illustrative) then score in-process.
-        var chunkList = _chunkCache.Values.SelectMany(v => v.Chunks).ToList();
-        var results = new List<(BookChunk Chunk, double Score)>();
-        foreach (var ch in chunkList)
-        {
-            var chEmb = (await _embedder.GenerateAsync([ch.Text], cancellationToken: ct))[0].Vector.ToArray();
-            var score = Cos(qEmb, chEmb);
-            results.Add((ch, score));
-        }
-        var top = results.OrderByDescending(r => r.Score).Take(Math.Max(1, query.TopK)).ToList();
+        // 3. Query vector index (topK + maybe some extra for filtering)
+        var matches = await _index.SimilaritySearchAsync(qEmb, Math.Max(1, query.TopK), ct: ct);
 
-        // 4. Assemble context & citations
+        // 4. Map back to chunks
+        var chunkDict = _chunkCache.Values.SelectMany(v => v.Chunks).ToDictionary(c => c.Id, c => c);
+        var topChunks = matches
+            .Select(m =>
+            {
+                if (chunkDict.TryGetValue(m.Id, out var ch))
+                {
+                    BookChunk? found = ch;
+                    return (found, (double)m.Score);
+                }
+                return ( (BookChunk?)null, 0d );
+            })
+            .Where(t => t.Item1 != null)
+            .Select(t => (Chunk: t.Item1!, Score: t.Item2))
+            .ToList();
+
+        // 5. Assemble context & citations
         var sb = new StringBuilder();
         var citations = new List<Citation>();
         int citeIndex = 1;
-        foreach (var t in top)
+        foreach (var t in topChunks)
         {
+            var chunk = t.Chunk!; // filtered above
             var label = $"B{citeIndex++}";
-            sb.AppendLine($"[{label}] (Book {t.Chunk.ParentId} Ch {t.Chunk.Chapter ?? "?"} Para {t.Chunk.ParagraphRange})");
-            sb.AppendLine(t.Chunk.Text.Length > 800 ? t.Chunk.Text[..800] + "..." : t.Chunk.Text);
+            sb.AppendLine($"[{label}] (Book {chunk.ParentId} Ch {chunk.Chapter ?? "?"} Para {chunk.ParagraphRange})");
+            sb.AppendLine(chunk.Text.Length > 800 ? chunk.Text[..800] + "..." : chunk.Text);
             sb.AppendLine();
             citations.Add(new Citation(
-                SourceId: t.Chunk.ParentId,
+                SourceId: chunk.ParentId,
                 SourceType: "Book",
-                Chapter: t.Chunk.Chapter,
-                ParagraphRange: t.Chunk.ParagraphRange,
+                Chapter: chunk.Chapter,
+                ParagraphRange: chunk.ParagraphRange,
                 Score: t.Score,
-                Snippet: t.Chunk.Text.Length > 160 ? t.Chunk.Text[..160] + "..." : t.Chunk.Text
+                Snippet: chunk.Text.Length > 160 ? chunk.Text[..160] + "..." : chunk.Text
             ));
         }
 
@@ -92,15 +92,16 @@ public sealed class HybridRagService : IAdvancedRagService
 
         return new RagAnswer(response.Content ?? string.Empty, citations, new Dictionary<string, object>
         {
-            ["chunksExamined"] = results.Count,
-            ["topCount"] = top.Count
+            ["chunksExamined"] = _chunkCache.Sum(c => c.Value.Chunks.Count),
+            ["topCount"] = topChunks.Count
         });
     }
 
-    private Task EnsureIndexedAsync(IEnumerable<BookDocument> books, CancellationToken ct)
+    private async Task EnsureIndexedAsync(IEnumerable<BookDocument> books, CancellationToken ct)
     {
         foreach (var b in books)
         {
+            if (ct.IsCancellationRequested) break;
             var hash = b.Content.Length; // naive hash placeholder
             if (_chunkCache.TryGetValue(b.Id, out var existing) && existing.Hash == hash)
             {
@@ -108,16 +109,39 @@ public sealed class HybridRagService : IAdvancedRagService
             }
             var chunks = _chunker.Chunk(b, new ChunkingOptions()).ToList();
             _chunkCache[b.Id] = (hash, chunks);
-            // In a real implementation, generate & upsert chunk embeddings to _index here.
+
+            // Generate embeddings & upsert into vector index
+            foreach (var batch in Batch(chunks, 8))
+            {
+                var texts = batch.Select(c => c.Text).ToArray();
+                var embeddings = await _embedder.GenerateAsync(texts, cancellationToken: ct);
+                for (int i = 0; i < batch.Count; i++)
+                {
+                    var ch = batch[i];
+                    var emb = embeddings[i].Vector;
+                    await _index.UpsertAsync(ch.Id, emb, new Dictionary<string, object>
+                    {
+                        ["bookId"] = ch.ParentId,
+                        ["chapter"] = ch.Chapter ?? string.Empty,
+                        ["para"] = ch.ParagraphRange ?? string.Empty
+                    }, ct);
+                }
+            }
         }
-        return Task.CompletedTask;
     }
 
-    private static double Cos(IReadOnlyList<float> a, IReadOnlyList<float> b)
+    private static IEnumerable<List<T>> Batch<T>(IEnumerable<T> source, int size)
     {
-        if (a.Count != b.Count) return 0;
-        double dot = 0, na = 0, nb = 0;
-        for (int i = 0; i < a.Count; i++) { var av = a[i]; var bv = b[i]; dot += av * bv; na += av * av; nb += bv * bv; }
-        return dot / (Math.Sqrt(na) * Math.Sqrt(nb) + 1e-9);
+        var bucket = new List<T>(size);
+        foreach (var item in source)
+        {
+            bucket.Add(item);
+            if (bucket.Count == size)
+            {
+                yield return bucket;
+                bucket = new List<T>(size);
+            }
+        }
+        if (bucket.Count > 0) yield return bucket;
     }
 }
