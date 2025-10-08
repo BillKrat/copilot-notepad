@@ -1,3 +1,6 @@
+using Adventures.Shared.Event;
+using Adventures.Shared.Sample.Entities;
+using Adventures.Shared.Sample.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -6,19 +9,10 @@ namespace NotebookAI.Server.Controllers;
 [ApiController]
 [Route("[controller]")]
 [Authorize] // This ensures all actions in this controller require authentication
-public class WeatherForecastController : ControllerBase
+public class WeatherForecastController(IWeatherBll bll, ILogger<WeatherForecastController> logger) : ControllerBase
 {
-    private static readonly string[] Summaries = new[]
-    {
-        "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
-    };
 
-    private readonly ILogger<WeatherForecastController> _logger;
 
-    public WeatherForecastController(ILogger<WeatherForecastController> logger)
-    {
-        _logger = logger;
-    }
 
     [HttpGet(Name = "GetWeatherForecast")]
     public IEnumerable<WeatherForecast> Get()
@@ -26,15 +20,18 @@ public class WeatherForecastController : ControllerBase
         // You can access user information from the JWT token
         var userId = User.FindFirst("sub")?.Value;
         var userEmail = User.FindFirst("email")?.Value;
-        
-        _logger.LogInformation("Weather forecast requested by user: {UserId}", userId);
-        
-        return Enumerable.Range(1, 5).Select(index => new WeatherForecast
+
+        var dict = new Dictionary<string, object?>
         {
-            Date = DateOnly.FromDateTime(DateTime.Now.AddDays(index)),
-            TemperatureC = Random.Shared.Next(-20, 55),
-            Summary = Summaries[Random.Shared.Next(Summaries.Length)]
-        })
-        .ToArray();
+            ["userId"] = userId,
+            ["userEmail"] = userEmail
+        };
+        var args = new JsonEventArgs(dict);
+
+        var results = bll.GetWeatherForecasts(this, args);   
+        
+        logger.LogInformation("Weather forecast requested by user: {UserId}", userId);
+
+        return results;
     }
 }

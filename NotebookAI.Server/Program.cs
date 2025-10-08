@@ -133,6 +133,9 @@ public class Program
         // Seed triple store if empty (ontology + sample data)
         builder.Services.AddHostedService<TripleStoreSeeder>();
 
+        // Automatic lifetime registrations (marker interfaces)
+        builder.Services.AddLifetimeRegistrations();
+
         // Document & RAG wiring
         builder.Services.AddScoped<IDocumentStore<BookDocument>>(sp => sp.GetRequiredService<IBookDocumentStore>());
         builder.Services.AddSingleton<IChunker<BookDocument, BookChunk>, ParagraphChunker>();

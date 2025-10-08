@@ -19,6 +19,7 @@ public class BooksController : ControllerBase
         _provider = provider; _triples = triples; _cacheInvalidator = sp.GetService<IBookConfigCacheInvalidator>();
     }
 
+
     [HttpGet]
     public async Task<IActionResult> List(CancellationToken ct)
     {

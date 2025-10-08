@@ -1,4 +1,4 @@
-namespace NotebookAI.Server;
+namespace Adventures.Shared.Sample.Entities;
 
 public class WeatherForecast
 {

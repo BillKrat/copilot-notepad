@@ -8,12 +8,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Content Include="NotepadTripleStore.db">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-  </ItemGroup>
-
-  <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" />
     <PackageReference Include="Microsoft.Extensions.Logging" />
     <PackageReference Include="Microsoft.SemanticKernel" />
@@ -22,6 +16,8 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\Adventures.Bll\Adventures.Bll.csproj" />
+    <ProjectReference Include="..\Adventures.Dal\Adventures.Dal.csproj" />
     <ProjectReference Include="..\Adventures.Shared\Adventures.Shared.csproj" />
     <ProjectReference Include="..\NotebookAI.ServiceDefaults\NotebookAI.ServiceDefaults.csproj" />
     <ProjectReference Include="..\NotebookAI.Services\NotebookAI.Services.csproj" />
