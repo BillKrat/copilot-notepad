@@ -253,10 +253,6 @@ copilot-notepad/
 - CDN cache purge integration
 - Automated test suite for deployment logic
 
-## Contributing
-
-PRs welcome. Please open an issue first for major proposals.
-
 ## Security
 
 Never commit real secrets. Use `dotnet user-secrets` for local dev. Rotate credentials if exposed.
