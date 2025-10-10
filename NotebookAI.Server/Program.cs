@@ -1,18 +1,19 @@
 using Adventures.Shared.AI;
-using Adventures.Shared.Extensions;
 using Adventures.Shared.Documents;
+using Adventures.Shared.Extensions;
+using Adventures.Shared.Middleware;
 using Adventures.Shared.Rag;
+using Adventures.Shared.Users;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using NotebookAI.Services.Documents;
-using NotebookAI.Services.Rag;
-using System.Security.Claims;
 using NotebookAI.Services.Persistence; // Added for persistence factory
-using NotebookAI.Triples.TripleStore; // triple store
+using NotebookAI.Services.Rag;
 using NotebookAI.Triples.Config; // book config provider
 using NotebookAI.Triples.Files; // file store
-using Microsoft.EntityFrameworkCore; // added for EnsureCreated
+using NotebookAI.Triples.TripleStore; // triple store
+using System.Security.Claims;
 
 namespace NotebookAI.Server;
 
@@ -136,13 +137,16 @@ public class Program
         // Automatic lifetime registrations (marker interfaces)
         builder.Services.AddLifetimeRegistrations();
 
+        // Register IUser as scoped and backed by Adventures.Shared.Users.User
+        builder.Services.AddScoped<IUser, User>();
+
         // Document & RAG wiring
         builder.Services.AddScoped<IDocumentStore<BookDocument>>(sp => sp.GetRequiredService<IBookDocumentStore>());
         builder.Services.AddSingleton<IChunker<BookDocument, BookChunk>, ParagraphChunker>();
         builder.Services.AddScoped<IRagService<BookDocument>, InMemoryRagService<BookDocument>>();
 
         // Vector index + advanced hybrid rag
-        builder.Services.AddSingleton<Adventures.Shared.Rag.IVectorIndex, Adventures.Shared.Rag.InMemoryVectorIndex>();
+        builder.Services.AddSingleton<IVectorIndex, InMemoryVectorIndex>();
         builder.Services.AddScoped<IAdvancedRagService, HybridRagService>();
 
         // AI kernel
@@ -172,6 +176,10 @@ public class Program
 
         app.UseHttpsRedirection();
         app.UseAuthentication();
+
+        // Populate IUser from authenticated principal each request
+        app.UseMiddleware<UserPopulationMiddleware>();
+
         app.UseAuthorization();
         app.MapControllers();
         app.MapFallbackToFile("/index.html");

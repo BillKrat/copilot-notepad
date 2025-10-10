@@ -26,8 +26,8 @@ public class EfTripleStore : ITripleStore
             Subject = subject,
             Predicate = predicate,
             Object = obj,
-            Data = data,
-            DataType = dataType,
+            GraphContext = data,
+            AnnotationMetadata = dataType,
             CreatedUtc = DateTime.UtcNow.ToString()
         };
         db.TripleEntities.Add(entity);
@@ -59,8 +59,8 @@ public class EfTripleStore : ITripleStore
         if (subject != null) e.Subject = subject;
         if (predicate != null) e.Predicate = predicate;
         if (@object != null) e.Object = @object;
-        if (data != null) e.Data = data;
-        if (dataType != null) e.DataType = dataType;
+        if (data != null) e.GraphContext = data;
+        if (dataType != null) e.AnnotationMetadata = dataType;
         e.UpdatedUtc = DateTime.UtcNow.ToString();
         await db.SaveChangesAsync(ct);
         return true;

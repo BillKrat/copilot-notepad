@@ -9,5 +9,6 @@ namespace Adventures.Shared.Results
     public class RequestResult
     {
         public object? Data { get; set; }
+
     }
 }

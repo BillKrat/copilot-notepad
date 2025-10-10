@@ -37,7 +37,7 @@ public sealed class TripleStoreFileStore : IFileStore
         {
             if (t.Predicate == "length" && long.TryParse(t.Object, out var l)) len = l;
             else if (t.Predicate == "lastModified" && DateTimeOffset.TryParse(t.Object, out var dto)) lm = dto;
-            else if (t.Predicate == "hasContent" && !string.IsNullOrWhiteSpace(t.DataType)) ctType = t.DataType;
+            else if (t.Predicate == "hasContent" && !string.IsNullOrWhiteSpace(t.AnnotationMetadata)) ctType = t.AnnotationMetadata;
         }
         return new FileEntry(path, ctType ?? "application/octet-stream", len, lm, null);
     }
@@ -71,7 +71,7 @@ public sealed class TripleStoreFileStore : IFileStore
             {
                 if (t.Predicate == "length" && long.TryParse(t.Object, out var l)) len = l;
                 else if (t.Predicate == "lastModified" && DateTimeOffset.TryParse(t.Object, out var dto)) lm = dto;
-                else if (t.Predicate == "hasContent" && !string.IsNullOrWhiteSpace(t.DataType)) ctType = t.DataType;
+                else if (t.Predicate == "hasContent" && !string.IsNullOrWhiteSpace(t.AnnotationMetadata)) ctType = t.AnnotationMetadata;
             }
             list.Add(new FileEntry(path, ctType, len, lm, null));
         }

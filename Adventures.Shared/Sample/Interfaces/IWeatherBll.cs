@@ -11,7 +11,7 @@ namespace Adventures.Shared.Sample.Interfaces
     public interface IWeatherBll : IBll
     {
         // Existing event-style method (kept for compatibility)
-        IEnumerable<WeatherForecast> GetWeatherForecasts(object sender, EventArgs e);
+        IEnumerable<WeatherForecast>? GetWeatherForecasts(object? sender=null, EventArgs? e=null);
 
     }
 }

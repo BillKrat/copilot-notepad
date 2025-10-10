@@ -87,7 +87,7 @@ public class BooksController : ControllerBase
     {
         // Content stored as (paragraphId, hasContent, null, Data=content)
         var triples = await _triples.QueryAsync(subject: paragraphId, predicate: "hasContent", ct: ct);
-        var content = triples.Select(t => t.Data).Where(d => !string.IsNullOrEmpty(d)).FirstOrDefault();
+        var content = triples.Select(t => t.GraphContext).Where(d => !string.IsNullOrEmpty(d)).FirstOrDefault();
         return Ok(new { paragraphId, content });
     }
 
@@ -96,7 +96,7 @@ public class BooksController : ControllerBase
     {
         // Sentence text stored as (sentenceId, hasText, null, Data=sentence)
         var triples = await _triples.QueryAsync(subject: sentenceId, predicate: "hasText", ct: ct);
-        var text = triples.Select(t => t.Data).Where(d => !string.IsNullOrEmpty(d)).FirstOrDefault();
+        var text = triples.Select(t => t.GraphContext).Where(d => !string.IsNullOrEmpty(d)).FirstOrDefault();
         if (text == null) return NotFound();
         return Ok(new { sentenceId, text });
     }

@@ -15,9 +15,9 @@ public partial class TripleEntity
 
     public string Object { get; set; }
 
-    public string Data { get; set; }
+    public string GraphContext { get; set; }
 
-    public string DataType { get; set; }
+    public string AnnotationMetadata { get; set; }
 
     public string UpdatedUtc { get; set; }
 

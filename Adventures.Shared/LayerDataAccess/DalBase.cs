@@ -10,47 +10,47 @@ namespace Adventures.Shared.LayerDataAccess
 {
     public class DalBase : IDal
     {
-        public virtual RequestResult Count(object sender, EventArgs e)
+        public virtual RequestResult Count(object? sender, EventArgs? e)
         {
             throw new NotImplementedException();
         }
 
-        public virtual RequestResult Create(object sender, EventArgs e)
+        public virtual RequestResult Create(object? sender, EventArgs? e)
         {
             throw new NotImplementedException();
         }
 
-        public virtual RequestResult Custom(object sender, EventArgs e)
+        public virtual RequestResult Custom(object? sender, EventArgs? e)
         {
             throw new NotImplementedException();
         }
 
-        public virtual RequestResult Delete(object sender, EventArgs e)
+        public virtual RequestResult Delete(object? sender, EventArgs? e)
         {
             throw new NotImplementedException();
         }
 
-        public virtual RequestResult Exists(object sender, EventArgs e)
+        public virtual RequestResult Exists(object? sender, EventArgs? e)
         {
             throw new NotImplementedException();
         }
 
-        public virtual RequestResult List(object sender, EventArgs e)
+        public virtual RequestResult List(object? sender, EventArgs? e)
         {
             throw new NotImplementedException();
         }
 
-        public virtual RequestResult Read(object sender, EventArgs e)
+        public virtual RequestResult Read(object? sender, EventArgs? e)
+        {   
+            throw new NotImplementedException();
+        }
+
+        public virtual RequestResult Search(object? sender, EventArgs? e)
         {
             throw new NotImplementedException();
         }
 
-        public virtual RequestResult Search(object sender, EventArgs e)
-        {
-            throw new NotImplementedException();
-        }
-
-        public virtual RequestResult Update(object sender, EventArgs e)
+        public virtual RequestResult Update(object? sender, EventArgs? e)
         {
             throw new NotImplementedException();
         }

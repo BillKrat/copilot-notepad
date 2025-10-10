@@ -1,28 +1,24 @@
-﻿using Adventures.Shared.Interfaces;
+﻿using Adventures.Shared.Extensions;
+using Adventures.Shared.Interfaces;
 using Adventures.Shared.LayerBusinessLogic;
 using Adventures.Shared.Sample.Entities;
 using Adventures.Shared.Sample.Interfaces;
+using Adventures.Shared.Users;
+using Microsoft.Extensions.Logging;
 
 namespace Adventures.Shared.Sample
 {
-    public class WeatherBll : BllBase, IWeatherBll, ILifetimeScoped
+    public class WeatherBll(IWeatherDal dal, IUser? user, ILogger<WeatherBll> logger) : BllBase, IWeatherBll, ILifetimeScoped
     {
-        public WeatherBll(IWeatherDal dal)
+
+        public IEnumerable<WeatherForecast>? GetWeatherForecasts(object? sender = null, EventArgs? e = null)
         {
-            Dal = dal;
+            logger.LogInformation("Weather forecast requested by user: {user?.Id}  {user?.Name}", user?.Id, user?.Name);
+
+
+            var results = dal?.Read(sender, e);
+            return results?.Data.As<IEnumerable<WeatherForecast>>();
         }
 
-        public IEnumerable<WeatherForecast> GetWeatherForecasts(object sender, EventArgs e)
-        {
-            var results = Dal?.Read(sender, e);
-            return [];
-        }
-
-        // Parameterless overload for typical callers (e.g., controllers) that do not use event pattern
-        public IEnumerable<WeatherForecast> GetWeatherForecasts()
-        {
-            // Use 'this' as sender and EventArgs.Empty for now.
-            return GetWeatherForecasts(this, EventArgs.Empty);
-        }
     }
 }

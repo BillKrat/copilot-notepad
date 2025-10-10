@@ -1,3 +1,5 @@
+using Microsoft.Extensions.Options;
+
 namespace NotebookAI.Triples.Ontology;
 
 /// <summary>
@@ -6,17 +8,52 @@ namespace NotebookAI.Triples.Ontology;
 /// </summary>
 public static class BookOntologySeed
 {
+    /// <summary>
+    /// RDF Triples using Quintuple Format
+    /// 
+    /// represents:
+    ///         Subject: "Book"
+    ///         Predicate: "rdf:type"
+    ///         Object: "rdfs:Class"
+    ///         Graph/Context(optional) : null
+    ///         Annotation/Metadata(optional) : null
+    ///
+    /// Gets a static collection of RDF triples representing example data and schema definitions for users, books,
+    /// authors, chapters, paragraphs, and sentences.
+    /// </summary>
+    /// <remarks>Each triple is represented as a tuple containing subject, predicate, object, optional data,
+    /// and optional data type. The collection includes both instance data and schema relationships, such as class and
+    /// property definitions, domain and range specifications, and sample content. This data can be used for
+    /// demonstration, testing, or as a basis for semantic graph operations.</remarks>
     public static (string subject, string? predicate, string? obj, string? data, string? dataType)[] Triples =>
         new (string subject, string? predicate, string? obj, string? data, string? dataType)[]
         {
+            ("User1", "rdf:type", "foaf:Person", null, null),
+            ("User1", "foaf:name", "\"Bill Smith\"", null, null),
+            ("User1", "foaf:mbox", "<mailto:bill.smith@example.org>", null, null),
+            ("User1", "foaf:knows", "User2", null, null),
+
+            ("User2", "rdf:type", "foaf:Person", null, null),
+            ("User2", "foaf:name", "\"Jane Doe\"", null, null),
+            ("User2", "foaf:mbox", "<mailto:jane.doe@example.org>", null, null),
+            ("User2", "foaf:knows", "User3", null, null),
+
+            ("User3", "rdf:type", "foaf:Person", null, null),
+            ("User3", "foaf:name", "\"Alex Johnson\"", null, null),
+            ("User3", "foaf:mbox", "<mailto:alex.johnson@example.org>", null, null),
+            ("User3", "foaf:knows", "User1", null, null),
+
             ("Book", "rdf:type", "rdfs:Class", null, null), 
             ("Author", "rdf:type", "rdfs:Class", null, null), 
+            
             ("writes", "rdf:type", "rdf:Property", null, null), 
             ("writes", "rdfs:domain", "Author", null, null), 
             ("writes", "rdfs:range", "Book", null, null), 
+            
             ("hasTitle", "rdf:type", "rdf:Property", null, null), 
             ("hasTitle", "rdfs:domain", "Book", null, null), 
             ("hasTitle", "rdfs:range", "xsd:string", null, null), 
+
             ("hasPublicationDate", "rdf:type", "rdf:Property", null, null), 
             ("hasPublicationDate", "rdfs:domain", "Book", null, null), 
             ("hasPublicationDate", "rdfs:range", "xsd:date", null, null), 
@@ -74,7 +111,9 @@ public static class BookOntologySeed
 
             ("sentence:ipsumInsightsc1p1s1", "rdf:type", "Sentence", null, null),
             ("sentence:ipsumInsightsc1p1s1", "hasText", null, "Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.", "xsd:string"),
-            ("paragraph:ipsumInsightsc1p1", "hasSentence", "sentence:ipsumInsightsc1p1s1", null, null)
+            ("paragraph:ipsumInsightsc1p1", "hasSentence", "sentence:ipsumInsightsc1p1s1", null, null),
+
+
         };
 }
 
